@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <!-- ★スマホ対応。これが無いとスマホは「幅980pxの画面」として描くので、全体が極小になる -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="勝つには相手の指の組み合わせが見えないといけない、2人対戦の手遊びゲーム。ひとりでも遊べるCPU対戦つき。">
+  <title>二進数バトル</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 0 20px;
+      background: #f5f5f5;
+      color: #333;
+    }
+    h1 {
+      font-size: 24px;
+      border-bottom: 3px solid #4a9;
+      padding-bottom: 8px;
+    }
+    #board {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .row {
+      display: flex;
+      align-items: flex-end;
+      gap: 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+    }
+    /* ② 今の攻撃者の行をうっすら色付け */
+    .row.active {
+      background: #eafaf5;
+    }
+    .label {
+      width: 56px;
+      font-weight: bold;
+    }
+    .hand {
+      display: flex;
+      align-items: flex-end;
+      gap: 4px;
+      height: 44px;
+    }
+    .finger {
+      width: 12px;
+      border-radius: 6px 6px 2px 2px;
+    }
+    .up {
+      height: 40px;
+      background: #4a9;
+    }
+    .down {
+      height: 12px;
+      background: #ccc;
+    }
+    /* ① 死んだ手（上限ちょうどの手）はグレーアウト */
+    .hand.dead .finger {
+      background: #ccc;
+      opacity: 0.4;
+    }
+    .num {
+      color: #666;
+      font-size: 14px;
+    }
+    .dead-mark {
+      color: #c44;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    /* ⑤ 手数の表示。盤面の一番下 */
+    .turns {
+      color: #666;
+      font-size: 14px;
+      padding-top: 10px;
+      text-align: right;
+    }
+    #message {
+      font-weight: bold;
+      color: #4a9;
+      min-height: 24px;
+    }
+    button {
+      background: #4a9;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 16px;
+      margin: 4px 2px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #3a8;
+    }
+    /* ③ 押せないボタン。button:hover と詳細度が同点なので、必ずこの下に書く */
+    button:disabled {
+      background: #ccc;
+      color: #888;
+      cursor: not-allowed;
+    }
+    .modes {
+      font-size: 14px;
+      color: #666;
+    }
+    /* ⑦ 選択中のモード。:hover 付きも書いてあるのは、
+       .mode-on だけだと button:hover（詳細度が上）に負けて、
+       マウスを乗せた瞬間だけ色が戻ってしまうから */
+    .mode-on, .mode-on:hover {
+      background: #276;
+    }
+    /* 冒頭の説明。何のゲームかを1行で伝える */
+    .lead {
+      line-height: 1.7;
+    }
+    /* ルールは畳んでおく。読みたい人だけ開く（盤面を下に押しやらないため） */
+    .rules {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      line-height: 1.8;
+    }
+    .rules summary {
+      cursor: pointer;
+      font-weight: bold;
+      color: #276;
+    }
+    .rules ul {
+      padding-left: 1.2em;
+    }
+    .note-small {
+      color: #666;
+      font-size: 13px;
+    }
+    /* ★スマホ。指1本ぶんの幅より小さいボタンは押しにくいので、縦積みにして大きくする */
+    @media (max-width: 480px) {
+      body {
+        margin: 16px auto;
+        padding: 0 12px;
+      }
+      button {
+        padding: 12px 14px;
+        font-size: 15px;
+      }
+      /* 攻撃の4ボタンは横に並べると折り返して読みにくいので、1行に1つ */
+      #btn-rr, #btn-rl, #btn-lr, #btn-ll {
+        display: block;
+        width: 100%;
+        margin: 6px 0;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>二進数バトル</h1>
+
+  <p class="lead">
+    勝つには、<b>相手の指の組み合わせが見えていないといけない</b>対戦ゲームです。<br>
+    ひとりで遊ぶときは、下の「<b>CPU（Bを担当）</b>」を押してください。
+  </p>
+
+  <details class="rules">
+    <summary>ルールを見る</summary>
+    <ul>
+      <li>お互い両手を使います。最初はどちらの手も <b>1</b>。</li>
+      <li>自分の手で相手の手を選ぶと、<b>自分の手の数だけ相手の手が増えます</b>。</li>
+      <li><b>ちょうど31</b> になった手は死んで、使えなくなります。</li>
+      <li>31 を超えたときは <b>31 を引いて</b> 続けます（例：35 → 4）。</li>
+      <li><b>両手とも死んだほうの負け</b>です。</li>
+      <li>200手たっても決着しなければ引き分けになります。</li>
+    </ul>
+    <p class="note-small">
+      指は左から <b>小指16・薬指8・中指4・人差し指2・親指1</b> の重みを持っていて、
+      立っている指を足した数が、その手の数です。<br>
+      「5本指モード」を選ぶと、指1本＝1 で数える元の遊び方になります（ちょうど <b>5</b> で死亡）。
+    </p>
+  </details>
+
+  <p class="modes">
+    モード：
+    <button id="mode-binary" onclick="setMode('binary')">二進数モード</button>
+    <button id="mode-normal" onclick="setMode('normal')">5本指モード</button>
+  </p>
+
+  <p class="modes">
+    対戦相手：
+    <button id="foe-human" onclick="setCPU(false)">人間ふたり</button>
+    <button id="foe-cpu"   onclick="setCPU(true)">CPU（Bを担当）</button>
+  </p>
+
+  <div id="board"></div>
+  <p id="message"></p>
+
+  <button id="btn-rr" onclick="doAttack('right','right')">右手 → 相手の右手</button>
+  <button id="btn-rl" onclick="doAttack('right','left')">右手 → 相手の左手</button>
+  <br>
+  <button id="btn-lr" onclick="doAttack('left','right')">左手 → 相手の右手</button>
+  <button id="btn-ll" onclick="doAttack('left','left')">左手 → 相手の左手</button>
+  <br>
+  <!-- リセットは常に押せるので id を付けない（updateButtons の管理下に入れない） -->
+  <button onclick="reset()">リセット</button>
+
+  <script>
+    // ===== 状態（ゲームが覚えておくデータ）=====
+    let person1 = {name:"A", right:1, left:1};
+    let person2 = {name:"B", right:1, left:1};
+    let attacker = person1;   // 今の攻撃者（person1の別名）
+    let defender = person2;   // 今の防御者
+    let gameOver = false;     // ④ 決着したら true にするフラグ
+    let turnCount = 0;        // ⑤ 成立した攻撃の回数（手数）
+    let vsCPU = false;        // ⑧ Bをコンピュータが操作するか
+
+    // ⑥ この手数に達しても決着しなければ引き分け。
+    //    バランス実測で、約3〜5%の対局が無限ループに入る（何手やっても終わらない）と判明したため。
+    //    上位5%の対局が154手なので、200手なら普通の勝負を邪魔しない。
+    //    let ではなく const ＝ゲーム中に変わらない「設定」であることの目印
+    const MAX_TURNS = 200;
+
+    // ===== モード（2つのルールの違いを、ここ1か所にまとめる）=====
+    //
+    // 5本指モード（元ゲーム）＝指を1本ずつ数える。片手の最大は5
+    // 二進数モード          ＝指を桁として使う（親1・人2・中4・薬8・小16）。片手の最大は31
+    // どちらも指は5本で、違うのは「指の数え方」だけ。
+    // だから max と fingers を差し替えるだけで切り替わる
+    const MODES = {
+      binary: {
+        label: "二進数モード",
+        max: 31,
+        showFingerNames: true,      // 「13（薬指中指親指）」と出す
+        fingers: [
+          {name:"小指",     value:16},
+          {name:"薬指",     value:8},
+          {name:"中指",     value:4},
+          {name:"人差し指", value:2},
+          {name:"親指",     value:1}
+        ]
+      },
+      normal: {
+        label: "5本指モード",
+        max: 5,
+        showFingerNames: false,     // 「3（3本）」と出す。どの指かに意味が無いモードなので
+        fingers: [
+          {name:"小指",     value:1},
+          {name:"薬指",     value:1},
+          {name:"中指",     value:1},
+          {name:"人差し指", value:1},
+          {name:"親指",     value:1}
+        ]
+      }
+    };
+
+    let modeName = "binary";   // ⑦ 今どちらで遊んでいるか
+
+    // ⑦ 今のモードの設定を取り出す。
+    //    わざと関数にしている。`let MAX = MODES[modeName].max;` のような「あだ名」にすると、
+    //    モードを切り替えたときに貼り直しを忘れて古い値が残る（attacker のあだ名と同じ落とし穴）。
+    //    毎回ここから取りに行けば、その心配が原理的に無くなる
+    function MODE(){ return MODES[modeName]; }
+
+    // ===== ロジック（計算・判定）=====
+
+    // 攻撃の計算。上限を超えたら上限を引く
+    function attack(a, b){
+      const max = MODE().max;
+      if (a + b > max){ return a + b - max }
+      return a + b
+    }
+
+    // 手が上限ちょうど（＝指を全部使い切った）なら死亡
+    function isDead(a){ return a === MODE().max }
+
+    // 両手とも死んでいたら負け
+    function isLoser(p){ return isDead(p.right) && isDead(p.left) }
+
+    // ⑧ 今がCPUの番か。CPUはいつもB（person2）を担当する。
+    //    attacker は person1 か person2 の「あだ名」なので、=== で実体を比べられる
+    function isCPUTurn(){
+      return vsCPU && !gameOver && attacker === person2;
+    }
+
+    // ④ 数値 → どの指が立っているか（true/false を5個の配列で返す）。
+    //    大きい桁から引ける分だけ引く＝二進数変換。この計算をするのは、このファイルでここ1か所だけ
+    function fingerStates(n){
+      const fingers = MODE().fingers;
+      let rest = n;
+      const states = [];
+      for (let i = 0; i < fingers.length; i++) {
+        if (rest >= fingers[i].value) {
+          states.push(true);
+          rest = rest - fingers[i].value;
+        } else {
+          states.push(false);
+        }
+      }
+      return states;
+    }
+
+    // 数値 → 説明文。二進数モードは指の名前（13→薬指中指親指）、5本指モードは「3本」。
+    // どちらも計算はせず、fingerStates の答えを言葉に変えるだけ
+    function handToFingers(n){
+      if (!MODE().showFingerNames) { return n + "本"; }
+      const states = fingerStates(n);
+      const fingers = MODE().fingers;
+      let result = "";
+      for (let i = 0; i < states.length; i++) {
+        if (states[i]) {
+          result = result + fingers[i].name;
+        }
+      }
+      return result;
+    }
+
+    // ===== 表示（画面を描く）=====
+
+    // 数値 → 指の絵（CSSの棒）。左から 16/8/4/2/1 の順＝二進数の並び
+    function handHTML(n){
+      const states = fingerStates(n);   // ④ 自分では計算せず、答えをもらうだけ
+      let cls = "hand";
+      if (isDead(n)) {          // ① 死んだ手には dead クラスを足す
+        cls = "hand dead";
+      }
+      let html = '<span class="' + cls + '">';
+      for (let i = 0; i < states.length; i++) {
+        if (states[i]) {
+          html = html + '<span class="finger up"></span>';
+        } else {
+          html = html + '<span class="finger down"></span>';
+        }
+      }
+      html = html + '</span>';
+      return html;
+    }
+
+    // 手1つ分の行（ラベル＋指の絵＋数字）
+    function handRow(p, side){
+      const n = p[side];
+      const label = p.name + (side === "right" ? "右手" : "左手");
+      let cls = "row";
+      if (p === attacker && !gameOver) {   // ② 攻撃者の行だけハイライト
+        cls = "row active";
+      }
+      const info = isDead(n)
+        ? '<span class="dead-mark">' + n + '（死亡）</span>'
+        : '<span class="num">' + n + '（' + handToFingers(n) + '）</span>';
+      return '<div class="' + cls + '">'
+        + '<span class="label">' + label + '</span>'
+        + handHTML(n)
+        + info
+        + '</div>';
+    }
+
+    // 盤面を4行ぶん描き直す
+    function showBoard(p1, p2){
+      let html = "";
+      html = html + handRow(p1, "right");
+      html = html + handRow(p1, "left");
+      html = html + handRow(p2, "right");
+      html = html + handRow(p2, "left");
+      html = html + '<p class="turns">手数：' + turnCount + '</p>';   // ⑤ 盤面の一部として一緒に描く
+      document.getElementById("board").innerHTML = html;
+      updateButtons();       // ③ 盤面と一緒にボタンの有効／無効も更新する
+      updateModeButtons();   // ⑦ 選択中のモードの印も一緒に更新する
+    }
+
+    // メッセージ欄を書き換える
+    function showMessage(text){
+      document.getElementById("message").textContent = text;
+    }
+
+    // ③ ボタン1つを、押せる／押せないに切り替える。
+    //    条件は doAttack の門番3つとまったく同じ（|| ＝どれか1つでも当てはまればダメ）
+    function setButton(id, myHand, yourHand){
+      const blocked = gameOver
+        || isCPUTurn()                      // ⑧ CPUの番は人間が横取りできない
+        || isDead(attacker[myHand])
+        || isDead(defender[yourHand]);
+      document.getElementById(id).disabled = blocked;
+    }
+
+    // ③ 4つの攻撃ボタンを今の状況に合わせて更新する
+    function updateButtons(){
+      setButton("btn-rr", "right", "right");
+      setButton("btn-rl", "right", "left");
+      setButton("btn-lr", "left",  "right");
+      setButton("btn-ll", "left",  "left");
+    }
+
+    // ⑦ 2つ1組のボタンの、選ばれている方に印を付ける
+    function markSelected(idOn, idOff){
+      document.getElementById(idOn).className = "mode-on";
+      document.getElementById(idOff).className = "";
+    }
+
+    // ⑦⑧ モードと対戦相手、2組ぶんの印を更新する
+    function updateModeButtons(){
+      if (modeName === "binary") { markSelected("mode-binary", "mode-normal"); }
+      else                       { markSelected("mode-normal", "mode-binary"); }
+
+      if (vsCPU) { markSelected("foe-cpu", "foe-human"); }
+      else       { markSelected("foe-human", "foe-cpu"); }
+    }
+
+    // ===== CPU（⑧ Bを担当するコンピュータ）=====
+
+    // 今この場面で打てる手を全部並べる。
+    // 中身は setButton の判定と同じ「自分の手が生きていて、相手の手も生きている」組み合わせ。
+    // 返すのは ["right","left"] のような2個組の配列を並べたもの
+    function cpuMoves(){
+      const moves = [];
+      for (const my of ["right", "left"]) {
+        for (const your of ["right", "left"]) {
+          if (!isDead(attacker[my]) && !isDead(defender[your])) {
+            moves.push([my, your]);
+          }
+        }
+      }
+      return moves;
+    }
+
+    // 打つ手を1つ決める。強さは「殺せるなら殺す、無ければランダム」。
+    // シミュレーションで“慣れた人”に近い打ち方だと確かめた強さ
+    function chooseCPUMove(){
+      const moves = cpuMoves();
+      if (moves.length === 0) { return null; }
+
+      // ① 相手の手をちょうど殺せる手があれば、それを選ぶ
+      for (let i = 0; i < moves.length; i++) {
+        const my = moves[i][0];
+        const your = moves[i][1];
+        if (isDead(attack(attacker[my], defender[your]))) {
+          return moves[i];
+        }
+      }
+      // ② 無ければランダム（step1.js の randomHand と同じ考え方）
+      return moves[Math.floor(Math.random() * moves.length)];
+    }
+
+    // CPUが1手打つ。setTimeout から呼ばれる
+    function cpuMove(){
+      // ★予約した処理は、状況が変わっても勝手に走ってくる。
+      //   待っている700ミリ秒の間にリセットされたり人間対戦に戻されたりしている
+      //   かもしれないので、打つ前にもう一度確かめて、違えば何もせず帰る
+      if (!isCPUTurn()) { return; }
+      const move = chooseCPUMove();
+      if (move === null) { return; }
+      doAttack(move[0], move[1]);
+    }
+
+    // ===== 操作（ボタンから呼ばれる）=====
+
+    // 1手ぶんの攻撃
+    function doAttack(myHand, yourHand){
+      if (gameOver) {                                   // 門番1：終了後は受け付けない
+        showMessage("ゲームは終了しています。リセットしてください");
+        return;
+      }
+      if (isDead(attacker[myHand])) {                   // 門番2：死んだ手では攻撃できない
+        showMessage("その手は死んでいるので攻撃できません");
+        return;
+      }
+      if (isDead(defender[yourHand])) {                 // 門番3：死んだ手は狙えない
+        showMessage("相手のその手は死んでいます");
+        return;
+      }
+
+      // 攻撃を反映
+      defender[yourHand] = attack(attacker[myHand], defender[yourHand]);
+      turnCount = turnCount + 1;   // ⑤ 門番を通り抜けた＝攻撃が成立したので、ここで数える
+
+      // 勝敗チェック
+      if (isLoser(defender)) {
+        gameOver = true;
+        showBoard(person1, person2);   // gameOver反映後に描く（ハイライトが消える）
+        // ★決着したときは手数も出す。遊んだ人が「何手で終わったか」を報告できるようにするため
+        //   （盤面にも常時出ているが、決着の瞬間に確定値を見せたほうが目に入る）
+        showMessage(defender.name + "の負け！ " + attacker.name + "の勝ち！（" + turnCount + "手）");
+        return;
+      }
+
+      // ⑥ 引き分けチェック。勝敗判定の「後」に置く＝決着がついたなら引き分けにしない
+      if (turnCount >= MAX_TURNS) {
+        gameOver = true;
+        showBoard(person1, person2);
+        showMessage("引き分け！ " + MAX_TURNS + "手たっても決着しませんでした");
+        return;
+      }
+
+      // 手番交代（temp を使ったスワップ）
+      const temp = attacker;
+      attacker = defender;
+      defender = temp;
+      showBoard(person1, person2);     // 交代後に描く（ハイライトが新しい攻撃者へ移る）
+
+      // ⑧ 交代した先がCPUなら、少し待ってから自動で打たせる。
+      //    すぐ打つと画面が一瞬で飛んで何が起きたか分からないので、わざと間を置く
+      if (isCPUTurn()) {
+        showMessage(attacker.name + "が考えています…");
+        setTimeout(cpuMove, 700);
+      } else {
+        showMessage("次は" + attacker.name + "の番です");
+      }
+    }
+
+    // ⑦ モードを切り替える。ルールが変わるので、必ず最初から始め直す
+    //    （31の盤面を持ったまま5本指モードに行くと、全部の手が死亡扱いになって破綻する）
+    function setMode(name){
+      modeName = name;
+      reset();
+      showMessage(MODE().label + "に切り替えました。Aの番です");
+    }
+
+    // ⑧ 対戦相手を切り替える。途中で変えると混乱するので、必ず最初から始め直す
+    function setCPU(on){
+      vsCPU = on;
+      reset();
+      showMessage(vsCPU
+        ? "CPU対戦にしました。あなたがA、Bがコンピュータです"
+        : "人間ふたりの対戦にしました。Aの番です");
+    }
+
+    // 最初の状態に戻す（盤面・手番・gameOver の3つ全部）
+    function reset(){
+      person1 = {name:"A", right:1, left:1};
+      person2 = {name:"B", right:1, left:1};
+      attacker = person1;
+      defender = person2;
+      gameOver = false;
+      turnCount = 0;             // ⑤ 戻す状態が4つ目になった
+      showBoard(person1, person2);
+      showMessage("リセットしました。Aの番です");
+    }
+
+    // 起動時に一度描く
+    showBoard(person1, person2);
+    showMessage("Aの番です");
+  </script>
+
+</body>
+</html>

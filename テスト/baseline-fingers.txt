@@ -1,0 +1,32 @@
+0 |  | <span class="hand"><span class="finger down"></span><span class="finger down"></span><span class="finger down"></span><span class="finger down"></span><span class="finger down"></span></span>
+1 | 親指 | <span class="hand"><span class="finger down"></span><span class="finger down"></span><span class="finger down"></span><span class="finger down"></span><span class="finger up"></span></span>
+2 | 人差し指 | <span class="hand"><span class="finger down"></span><span class="finger down"></span><span class="finger down"></span><span class="finger up"></span><span class="finger down"></span></span>
+3 | 人差し指親指 | <span class="hand"><span class="finger down"></span><span class="finger down"></span><span class="finger down"></span><span class="finger up"></span><span class="finger up"></span></span>
+4 | 中指 | <span class="hand"><span class="finger down"></span><span class="finger down"></span><span class="finger up"></span><span class="finger down"></span><span class="finger down"></span></span>
+5 | 中指親指 | <span class="hand"><span class="finger down"></span><span class="finger down"></span><span class="finger up"></span><span class="finger down"></span><span class="finger up"></span></span>
+6 | 中指人差し指 | <span class="hand"><span class="finger down"></span><span class="finger down"></span><span class="finger up"></span><span class="finger up"></span><span class="finger down"></span></span>
+7 | 中指人差し指親指 | <span class="hand"><span class="finger down"></span><span class="finger down"></span><span class="finger up"></span><span class="finger up"></span><span class="finger up"></span></span>
+8 | 薬指 | <span class="hand"><span class="finger down"></span><span class="finger up"></span><span class="finger down"></span><span class="finger down"></span><span class="finger down"></span></span>
+9 | 薬指親指 | <span class="hand"><span class="finger down"></span><span class="finger up"></span><span class="finger down"></span><span class="finger down"></span><span class="finger up"></span></span>
+10 | 薬指人差し指 | <span class="hand"><span class="finger down"></span><span class="finger up"></span><span class="finger down"></span><span class="finger up"></span><span class="finger down"></span></span>
+11 | 薬指人差し指親指 | <span class="hand"><span class="finger down"></span><span class="finger up"></span><span class="finger down"></span><span class="finger up"></span><span class="finger up"></span></span>
+12 | 薬指中指 | <span class="hand"><span class="finger down"></span><span class="finger up"></span><span class="finger up"></span><span class="finger down"></span><span class="finger down"></span></span>
+13 | 薬指中指親指 | <span class="hand"><span class="finger down"></span><span class="finger up"></span><span class="finger up"></span><span class="finger down"></span><span class="finger up"></span></span>
+14 | 薬指中指人差し指 | <span class="hand"><span class="finger down"></span><span class="finger up"></span><span class="finger up"></span><span class="finger up"></span><span class="finger down"></span></span>
+15 | 薬指中指人差し指親指 | <span class="hand"><span class="finger down"></span><span class="finger up"></span><span class="finger up"></span><span class="finger up"></span><span class="finger up"></span></span>
+16 | 小指 | <span class="hand"><span class="finger up"></span><span class="finger down"></span><span class="finger down"></span><span class="finger down"></span><span class="finger down"></span></span>
+17 | 小指親指 | <span class="hand"><span class="finger up"></span><span class="finger down"></span><span class="finger down"></span><span class="finger down"></span><span class="finger up"></span></span>
+18 | 小指人差し指 | <span class="hand"><span class="finger up"></span><span class="finger down"></span><span class="finger down"></span><span class="finger up"></span><span class="finger down"></span></span>
+19 | 小指人差し指親指 | <span class="hand"><span class="finger up"></span><span class="finger down"></span><span class="finger down"></span><span class="finger up"></span><span class="finger up"></span></span>
+20 | 小指中指 | <span class="hand"><span class="finger up"></span><span class="finger down"></span><span class="finger up"></span><span class="finger down"></span><span class="finger down"></span></span>
+21 | 小指中指親指 | <span class="hand"><span class="finger up"></span><span class="finger down"></span><span class="finger up"></span><span class="finger down"></span><span class="finger up"></span></span>
+22 | 小指中指人差し指 | <span class="hand"><span class="finger up"></span><span class="finger down"></span><span class="finger up"></span><span class="finger up"></span><span class="finger down"></span></span>
+23 | 小指中指人差し指親指 | <span class="hand"><span class="finger up"></span><span class="finger down"></span><span class="finger up"></span><span class="finger up"></span><span class="finger up"></span></span>
+24 | 小指薬指 | <span class="hand"><span class="finger up"></span><span class="finger up"></span><span class="finger down"></span><span class="finger down"></span><span class="finger down"></span></span>
+25 | 小指薬指親指 | <span class="hand"><span class="finger up"></span><span class="finger up"></span><span class="finger down"></span><span class="finger down"></span><span class="finger up"></span></span>
+26 | 小指薬指人差し指 | <span class="hand"><span class="finger up"></span><span class="finger up"></span><span class="finger down"></span><span class="finger up"></span><span class="finger down"></span></span>
+27 | 小指薬指人差し指親指 | <span class="hand"><span class="finger up"></span><span class="finger up"></span><span class="finger down"></span><span class="finger up"></span><span class="finger up"></span></span>
+28 | 小指薬指中指 | <span class="hand"><span class="finger up"></span><span class="finger up"></span><span class="finger up"></span><span class="finger down"></span><span class="finger down"></span></span>
+29 | 小指薬指中指親指 | <span class="hand"><span class="finger up"></span><span class="finger up"></span><span class="finger up"></span><span class="finger down"></span><span class="finger up"></span></span>
+30 | 小指薬指中指人差し指 | <span class="hand"><span class="finger up"></span><span class="finger up"></span><span class="finger up"></span><span class="finger up"></span><span class="finger down"></span></span>
+31 | 小指薬指中指人差し指親指 | <span class="hand dead"><span class="finger up"></span><span class="finger up"></span><span class="finger up"></span><span class="finger up"></span><span class="finger up"></span></span>
