@@ -140,6 +140,30 @@
       color: #666;
       font-size: 13px;
     }
+    /* 感想の導線。決着したときだけ出す（.show が付いたときだけ見える） */
+    .share {
+      display: none;
+    }
+    .share.show {
+      display: block;
+      background: #fff;
+      border: 2px solid #4a9;
+      border-radius: 8px;
+      padding: 14px;
+      margin: 12px 0;
+    }
+    .share-line {
+      background: #f5f5f5;
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 13px;
+      color: #444;
+      word-break: break-all;
+    }
+    .share p {
+      margin: 8px 0;
+      font-size: 14px;
+    }
     /* ★スマホ。指1本ぶんの幅より小さいボタンは押しにくいので、縦積みにして大きくする */
     @media (max-width: 480px) {
       body {
@@ -199,6 +223,20 @@
 
   <div id="board"></div>
   <p id="message"></p>
+
+  <!-- 決着したときだけ出る。遊び終わった直後がいちばん反応しやすいので、そこに置いている。
+       手数はボタンを押すだけで文章に入るので、書くことを考えなくていい -->
+  <div id="share" class="share">
+    <p><b>よかったら、結果を教えてください。</b></p>
+    <p class="share-line" id="share-text"></p>
+    <p>
+      <button id="share-btn" onclick="copyResult()">この結果をコピー</button>
+    </p>
+    <p class="note-small">
+      コピーして <a id="share-link" href="#" target="_blank" rel="noopener">note のコメント欄</a> に貼るだけで大丈夫です。<br>
+      感想はあってもなくても構いません。あれば一言そえてください。
+    </p>
+  </div>
 
   <button id="btn-rr" onclick="doAttack('right','right')">右手 → 相手の右手</button>
   <button id="btn-rl" onclick="doAttack('right','left')">右手 → 相手の左手</button>
@@ -376,6 +414,55 @@
       document.getElementById("message").textContent = text;
     }
 
+    // ===== 感想の導線 =====
+    //
+    // ★決着した瞬間だけ出す。遊び終わった直後がいちばん反応しやすいため。
+    //   手数はボタンを押すだけで文章に入るので、送る人は「何を書くか」を考えなくていい。
+    //   （自動対戦2万回では平均51〜74手。人が遊んだ数字はまだ1件も無いので、それを集めたい）
+
+    // ★感想の貼り先。変えるときはここ1か所だけ直せばよい
+    // ★/portal ではなく素のプロフィールを指している。
+    //   /portal はリンク集で記事一覧が出ないため、コメント欄までたどり着けない
+    const NOTE_URL = "https://note.com/pine_pple";
+
+    let shareText = "";
+
+    // kind は「決着しました」か「引き分けになりました」
+    function showShare(kind){
+      const foe = vsCPU ? "CPU対戦" : "人間ふたり";
+      shareText = "二進数バトル：" + MODE().label + "／" + foe + "、" + turnCount + "手で" + kind;
+      document.getElementById("share-text").textContent = shareText;
+      document.getElementById("share-link").href = NOTE_URL;
+      document.getElementById("share-btn").textContent = "この結果をコピー";
+      document.getElementById("share").className = "share show";
+    }
+
+    function hideShare(){
+      document.getElementById("share").className = "share";
+    }
+
+    function copyResult(){
+      const done = function(){
+        document.getElementById("share-btn").textContent = "コピーしました";
+      };
+      // 昔ながらのやり方。見えない入力欄を作って選択してコピーし、すぐ消す。
+      // navigator.clipboard が使えない環境（古いブラウザ等）のための道
+      const fallback = function(){
+        const t = document.createElement("textarea");
+        t.value = shareText;
+        document.body.appendChild(t);
+        t.select();
+        document.execCommand("copy");
+        document.body.removeChild(t);
+        done();
+      };
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(shareText).then(done, fallback);
+      } else {
+        fallback();
+      }
+    }
+
     // ③ ボタン1つを、押せる／押せないに切り替える。
     //    条件は doAttack の門番3つとまったく同じ（|| ＝どれか1つでも当てはまればダメ）
     function setButton(id, myHand, yourHand){
@@ -483,6 +570,7 @@
         // ★決着したときは手数も出す。遊んだ人が「何手で終わったか」を報告できるようにするため
         //   （盤面にも常時出ているが、決着の瞬間に確定値を見せたほうが目に入る）
         showMessage(defender.name + "の負け！ " + attacker.name + "の勝ち！（" + turnCount + "手）");
+        showShare("決着しました");
         return;
       }
 
@@ -491,6 +579,7 @@
         gameOver = true;
         showBoard(person1, person2);
         showMessage("引き分け！ " + MAX_TURNS + "手たっても決着しませんでした");
+        showShare("引き分けになりました");
         return;
       }
 
@@ -537,6 +626,7 @@
       turnCount = 0;             // ⑤ 戻す状態が4つ目になった
       showBoard(person1, person2);
       showMessage("リセットしました。Aの番です");
+      hideShare();               // 前の対局の感想欄が残らないように消す
     }
 
     // 起動時に一度描く
