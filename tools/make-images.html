@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>アイコンと見出し画像を作る</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+<style>
+body{margin:0;padding:20px;background:#10111b;color:#f4f4f4;font-family:"DotGothic16",monospace}
+.row{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end}
+figure{margin:0;text-align:center;font-size:13px}
+canvas{display:block;background:repeating-conic-gradient(#222 0 25%,#333 0 50%) 0 0/16px 16px;max-width:100%}
+#status{margin:12px 0;color:#ffcd75}
+</style>
+</head>
+<body>
+<!-- アイコンと、リンクを送ったときに出る見出し画像（OGP）を描いて、img/ に保存する。
+     node tools/serve.mjs で開いたときだけ保存できる（http://localhost:5605/tools/make-images.html）。
+     手の絵は screen.html から借りる（裏で読み込んで、その中の handGrid を使う）。絵を描き直したら、これを開き直すだけでよい -->
+<h1>アイコンと見出し画像</h1>
+<p id="status">描いています…</p>
+<div class="row" id="out"></div>
+<iframe id="game" src="/screen.html" hidden></iframe>
+<script>
+const SIZES = [
+  {name:'favicon-48.png', w:48, h:48, bg:null},
+  {name:'apple-touch-icon.png', w:180, h:180, bg:'#1a1c2c'},
+  {name:'icon-192.png', w:192, h:192, bg:'#1a1c2c'},
+  {name:'icon-512.png', w:512, h:512, bg:'#1a1c2c'},
+  {name:'ogp.png', w:1200, h:630, bg:'#10111b'},
+];
+const status = document.getElementById('status');
+
+// 手を1マスずつ塗る。grid は screen.html の handGrid が返す「1マスずつの色」
+function drawGrid(ctx, grid, x0, y0, s) {
+  grid.forEach((row, y) => row.forEach((c, x) => { if (c) { ctx.fillStyle = c; ctx.fillRect(x0 + x * s, y0 + y * s, s, s); } }));
+}
+
+function drawIcon(ctx, W, H, game) {
+  // 指が全部立った手（pineさんの絵そのまま）。たおれた色にはしない
+  const grid = game.handGrid(31, false), gw = grid[0].length, gh = grid.length;
+  const s = Math.max(1, Math.floor(Math.min(W, H) * (W <= 48 ? 1 : .8) / gh));
+  drawGrid(ctx, grid, Math.round((W - gw * s) / 2), Math.round((H - gh * s) / 2), s);
+}
+
+function drawOGP(ctx, W, H, game, labelCells) {
+  // うっすら市松もよう
+  ctx.fillStyle = '#141626';
+  for (let y = 0; y < H; y += 30) for (let x = (y / 30) % 2 ? 30 : 0; x < W; x += 60) ctx.fillRect(x, y, 30, 30);
+  // 左：手を2つ（6＝4＋2、19＝16＋2＋1）。指の上に札、下に数
+  const s = 7;
+  [[6, 70], [19, 330]].forEach(([v, x0]) => {
+    const grid = game.handGrid(v, false), y0 = 150;
+    drawGrid(ctx, grid, x0, y0, s);
+    ctx.font = '22px DotGothic16'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    [16, 8, 4, 2, 1].forEach((b, i) => {
+      const cx = x0 + labelCells[i] * s, on = (v & b) > 0;
+      ctx.fillStyle = '#000'; ctx.fillRect(cx - 19, y0 - 54, 38, 34);
+      ctx.fillStyle = on ? '#ffcd75' : '#232742'; ctx.fillRect(cx - 18, y0 - 53, 36, 32);
+      ctx.fillStyle = on ? '#1a1c2c' : '#566c86'; ctx.fillText(String(b), cx, y0 - 36);
+    });
+    ctx.font = '54px DotGothic16'; ctx.fillStyle = '#000';
+    const mid = x0 + grid[0].length * s / 2, by = y0 + grid.length * s + 44;
+    ctx.fillText(String(v), mid + 3, by + 3); ctx.fillStyle = '#f4f4f4'; ctx.fillText(String(v), mid, by);
+  });
+  // 右：名前と ひとこと
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  const tx = 600;
+  ctx.font = '92px DotGothic16';
+  for (const [dx, c] of [[8, '#000'], [4, '#b13e53'], [0, '#ffcd75']]) { ctx.fillStyle = c; ctx.fillText('二進数バトル', tx + dx, 280 + dx); }
+  ctx.font = '34px DotGothic16'; ctx.fillStyle = '#94b0c2';
+  ctx.fillText('指を 二進数で数える、', tx + 6, 360);
+  ctx.fillText('ふたりの手遊び', tx + 6, 408);
+  ctx.font = '30px DotGothic16'; ctx.fillStyle = '#73eff7';
+  ctx.fillText('16・8・4・2・1　ちょうど31でたおれる', tx + 6, 480);
+}
+
+async function save(canvas, name) {
+  const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+  const res = await fetch('/save-image?name=' + encodeURIComponent(name), {method:'POST', body:blob});
+  if (!res.ok) throw new Error(name + '：' + res.status);
+}
+
+document.getElementById('game').addEventListener('load', async () => {
+  const game = document.getElementById('game').contentWindow;
+  await document.fonts.load('92px DotGothic16');
+  // 札の場所（指の真ん中）は、screen.html のタイトルの手の札から読む（1マス＝4px で置いてある）
+  const spans = [...game.document.querySelectorAll('#title-hands .labels')][0].querySelectorAll('span');
+  const labelCells = [...spans].map(sp => parseFloat(sp.style.left) / 4);
+  const out = document.getElementById('out'), done = [];
+  for (const sz of SIZES) {
+    const cv = document.createElement('canvas'); cv.width = sz.w; cv.height = sz.h;
+    const ctx = cv.getContext('2d'); ctx.imageSmoothingEnabled = false;
+    if (sz.bg) { ctx.fillStyle = sz.bg; ctx.fillRect(0, 0, sz.w, sz.h); }
+    if (sz.name === 'ogp.png') drawOGP(ctx, sz.w, sz.h, game, labelCells); else drawIcon(ctx, sz.w, sz.h, game);
+    const fig = document.createElement('figure'); fig.append(cv, Object.assign(document.createElement('figcaption'), {textContent:`${sz.name}（${sz.w}×${sz.h}）`}));
+    out.append(fig);
+    try { await save(cv, sz.name); done.push(sz.name); } catch (e) { status.textContent = '保存できませんでした：' + e.message + '（node tools/serve.mjs で開いていますか）'; return; }
+  }
+  status.textContent = `保存しました（img/ に ${done.length} 枚）`;
+});
+</script>
+</body>
+</html>

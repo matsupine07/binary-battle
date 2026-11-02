@@ -1,65 +1,54 @@
 // ============================================================
-// テスト1：指の表示（回帰テスト）
+// テスト1：指の絵
 //
-// 0〜31 の全パターンで、指の名前と指の絵がどう出るかを書き出し、
-// 保存してある基準（baseline-fingers.txt）と比べる。
+// 1〜30 のどの数でも、
+//   ・絵の中で立っている指
+//   ・黄色く光る札（16・8・4・2・1）
+//   ・数字の下の足し算の式
+// が、二進数の桁とそろっているか。31 はたおれた手の絵になるか。
 //
-// これは「変えていないはずのものが、本当に変わっていないか」を確かめるためのテスト。
-// リファクタリングやモード追加のときに、いちばん頼りになる。
-//
-// 基準ファイルが無ければ、今の出力を基準として作る。
-// わざと表示を変えたときは baseline-fingers.txt を削除してから走らせ直す。
+// 手の絵は pineさんが Piskel で描いた「指が全部立った手」1枚から作っている。
+// 絵を描き直して指の場所（FINGERS）がずれると、ここで見つかる。
 // ============================================================
 
-const fs = require("fs");
-const path = require("path");
-const { runGame } = require("./common");
-
-const BASE = path.join(__dirname, "baseline-fingers.txt");
+const { runGame, finish } = require("./common");
 
 const sandbox = runGame(`
-  const lines = [];
-  for (let n = 0; n <= MODE().max; n++) {
-    lines.push(n + " | " + handToFingers(n) + " | " + handHTML(n));
+  // 絵の中で、その指が立っているか：指の列の「関節より3段上」に、手の色（pineさんの絵の色）があるか
+  const skin = new Set(Object.values(HAND_PAL));
+  function raisedInArt(v, f) {
+    const g = handGrid(v, false), y = f.base - 3 - BOX.y;
+    for (let x = f.x0 - BOX.x; x <= f.x1 - BOX.x; x++) if (skin.has(g[y][x])) return true;
+    return false;
   }
-  result = lines.join("\\n");
+  const lit = v => (handHTML(v).match(/class="on"/g) || []).length;
+
+  section("1〜30：絵・札・足し算が、二進数の桁とそろっている");
+  const bad = [];
+  for (let v = 1; v <= 30; v++) {
+    const bits = FINGERS.filter(f => v & f.bit).map(f => f.bit);
+    const art = FINGERS.filter(f => raisedInArt(v, f)).map(f => f.bit);
+    const sum = bits.length > 1 ? bits.join("＋") : "";
+    if (art.join() !== bits.join() || lit(v) !== bits.length || sumText(v) !== sum) bad.push(v);
+  }
+  ok(bad.length === 0, "30通り全部そろっている" + (bad.length ? "（ずれ：" + bad.join("・") + "）" : ""));
+
+  section("目で見て分かる例");
+  ok(sumText(13) === "8＋4＋1", "13 は 8＋4＋1");
+  ok(lit(13) === 3, "13 は札が3つ光る");
+  ok(sumText(16) === "", "16 は指1本なので、式を出さない");
+  ok(lit(1) === 1 && raisedInArt(1, FINGERS[4]), "1 は親指だけ");
+
+  section("折れた指の場所には、空っぽの枠（市松もよう）");
+  ok(handGrid(1, false).flat().includes("#4a5380"), "1（親指だけ）のとき、枠がある");
+  ok(!handGrid(31, false).flat().includes("#4a5380"), "全部の指が立っているときは、枠が無い");
+
+  section("31：たおれた手");
+  const colors = new Set(handGrid(31, true).flat().filter(Boolean));
+  ok(![...colors].some(c => skin.has(c)), "手の色が残っていない（灰色になった）");
+  ok(colors.has("#f4f4f4"), "包帯の白がある");
+  ok(lit(31) === 0, "たおれた手の札は光らない");
+  ok(sumText(31) === "たおれた", "式のかわりに「たおれた」");
 `);
 
-const now = sandbox.result;
-
-console.log("■ テスト1：指の表示（二進数モード・0〜31の全32パターン）");
-
-if (!fs.existsSync(BASE)) {
-  fs.writeFileSync(BASE, now, "utf8");
-  console.log("   基準ファイルが無かったので、今の出力を基準として保存しました");
-  console.log("   → " + BASE);
-  console.log("");
-  console.log("  → 次回からは、この基準と比べます");
-} else {
-  const before = fs.readFileSync(BASE, "utf8").split(/\r?\n/);
-  const after = now.split(/\r?\n/);
-
-  const diffs = [];
-  const len = Math.max(before.length, after.length);
-  for (let i = 0; i < len; i++) {
-    if (before[i] !== after[i]) diffs.push(i);
-  }
-
-  console.log("   基準ファイルと比較しました");
-  console.log("   差分: " + diffs.length + " 件");
-  console.log("");
-
-  if (diffs.length === 0) {
-    console.log("  → 全部OK（表示は1文字も変わっていません）");
-  } else {
-    for (const i of diffs.slice(0, 5)) {
-      console.log("   ★" + (i + 1) + "行目");
-      console.log("     前: " + (before[i] || "(無し)").slice(0, 100));
-      console.log("     後: " + (after[i] || "(無し)").slice(0, 100));
-    }
-    if (diffs.length > 5) console.log("   ... 他 " + (diffs.length - 5) + " 件");
-    console.log("");
-    console.log("  → ★表示が変わっています。意図した変更なら baseline-fingers.txt を削除して作り直してください");
-    process.exitCode = 1;
-  }
-}
+finish(sandbox);

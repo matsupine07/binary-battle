@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>利用規約とプライバシー｜二進数バトル</title>
+<meta name="theme-color" content="#10111b">
+<link rel="icon" href="img/favicon-48.png" sizes="48x48" type="image/png">
+<link rel="canonical" href="https://pineapp05.web.app/terms.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+<style>
+/* 長い文書のページ。ゲームと同じ夜の色で、1段組み・スマホ先。見出しだけドットの字、本文は読みやすい字 */
+:root{--ground:#10111b;--card:#1a1c2c;--line:#333c57;--text:#f4f4f4;--sub:#94b0c2;--gold:#ffcd75;--red:#b13e53;--cyan:#73eff7;color-scheme:dark}
+body{margin:0;background:var(--ground);color:var(--text);font-family:system-ui,-apple-system,"Hiragino Sans","Yu Gothic UI","Yu Gothic",Meiryo,sans-serif;font-size:15px;line-height:1.85}
+.page{max-width:760px;margin:0 auto;padding:20px max(16px,env(safe-area-inset-right,0px)) 64px max(16px,env(safe-area-inset-left,0px))}
+.sheet{background:var(--card);border:3px solid var(--line);padding:20px 18px 28px}
+h1,h2,.back{font-family:"DotGothic16",ui-monospace,monospace;font-weight:normal}
+h1{font-size:26px;margin:0 0 4px;line-height:1.4;color:var(--gold);text-shadow:2px 2px 0 var(--red)}
+h2{font-size:19px;margin:36px 0 8px;padding-bottom:4px;border-bottom:3px solid var(--gold)}
+h3{font-size:16px;margin:22px 0 4px}
+p,li{overflow-wrap:anywhere}
+ol,ul{padding-left:1.4em}
+li+li{margin-top:4px}
+.lead{color:var(--sub);font-size:14px}
+.draft{background:#3a1e1e;border:2px solid var(--red);color:#ffd3c7;padding:10px 12px;font-size:14px;margin:12px 0}
+nav ol{columns:2;column-gap:24px;font-size:14px}
+@media (max-width:520px){nav ol{columns:1}}
+a{color:var(--cyan)}
+b{font-weight:700;color:var(--gold)}
+details{border-top:1px solid var(--line);padding:8px 0}
+summary{cursor:pointer;font-weight:700}
+/* ゲームにもどる：上は画面の上に残る帯（長いページのどこからでも押せる）。下はページの終わり */
+.bar{position:sticky;top:0;z-index:5;background:rgba(16,17,27,.94);border-bottom:3px solid var(--line)}
+.bar-in{max-width:760px;margin:0 auto;padding:8px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px))}
+.back{display:inline-flex;align-items:center;min-height:44px;padding:0 16px;background:#3b5dc9;border:3px solid #1a1c2c;box-shadow:inset -3px -3px 0 #29366f,inset 3px 3px 0 #41a6f6;color:var(--text);text-decoration:none;font-size:15px}
+.back-bottom{margin-top:28px}
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="bar-in"><a class="back js-back" href="./">← ゲームにもどる</a></div>
+</header>
+<main class="page">
+<div class="sheet">
+  <h1>利用規約とプライバシー</h1>
+  <p class="lead">二進数バトル ── 指を二進数で数える、ふたりの手遊びのゲーム</p>
+  <!-- ⛔公開する日に、この下書きの札を消して、附則と改定の記録の【公開する日】を本当の日付にする -->
+  <p class="draft">下書きです。公開する日に、効き始める日（附則）と改定の記録の日付を入れます。</p>
+
+  <nav aria-label="目次">
+    <ol>
+      <li><a href="#summary">やさしい要約</a></li>
+      <li><a href="#terms">利用規約（本文）</a></li>
+      <li><a href="#privacy">プライバシーの説明</a></li>
+      <li><a href="#faq">よくある質問</a></li>
+      <li><a href="#history">改定の記録</a></li>
+    </ol>
+  </nav>
+
+  <!-- ==================== やさしい要約 ==================== -->
+  <h2 id="summary">やさしい要約</h2>
+  <p>ここは、下の利用規約とプライバシーの説明を、短くまとめたものです。決まりの中身は、利用規約の本文（第1条から）が決めます。</p>
+  <ol>
+    <li>このゲームは、pine が個人で、無料で作っています。広告・課金・投げ銭はありません。</li>
+    <li>タイトルの画面などで「ひとりで あそぶ」か「ふたりで あそぶ」を押すと、この利用規約とプライバシーの説明に同意したことになります。</li>
+    <li>18歳未満の人は、保護者の同意を得てから使ってください。小学生までの人は、保護者といっしょに遊んでください。</li>
+    <li>⭐<b>ゲームの中身（手・勝ち負け・手数）は、どこにも送りません。</b>CPU も、あなたの端末の中で考えます。あなたの端末に保存するものもありません。</li>
+    <li>名前・メールアドレス・電話番号は聞きません。登録もありません。</li>
+    <li>ページを開くと、ページを届ける Google（Firebase）と、文字の形を届ける Google（Google Fonts）に、IP アドレスなどが送られます。</li>
+    <li>「この結果をコピー」は、結果の文を、あなたの端末に写すだけです。感想を note のコメント欄に書くと、note の決まりで扱われ、だれでも読めます。</li>
+    <li>ゲームが止まったり、表示が崩れたりすることがあります。運営者の不注意が軽いときの賠償は、1万円までです（わざとや、ひどい不注意のとき、命や体の損害のときは別です）。</li>
+    <li>規約を変えるときは、7日前までに、このページとタイトルの画面で知らせます。</li>
+    <li>質問は、note の記事のコメント欄に書いてください。名前・メールアドレス・電話番号は書かないでください。</li>
+  </ol>
+
+  <!-- ==================== 利用規約（本文） ==================== -->
+  <h2 id="terms">利用規約（本文）</h2>
+
+  <h3 id="article-1">第1条（この規約について）</h3>
+  <ol>
+    <li>この規約は、「二進数バトル」（このゲーム）を使う人と、運営者の pine との約束です。使う人を「あなた」、pine を「運営者」と書きます。</li>
+    <li>この規約の本文は、第1条から第12条と附則です。このページのほかの部分は説明です。ただし、プライバシーの説明は、運営者が守る約束として、第7条でこの規約に入れています。</li>
+  </ol>
+
+  <h3 id="article-2">第2条（同意のしかた）</h3>
+  <p>「ひとりで あそぶ」または「ふたりで あそぶ」を押すと、あなたはこの規約とプライバシーの説明に同意したことになります。</p>
+
+  <h3 id="article-3">第3条（このゲームのしくみと料金）</h3>
+  <ol>
+    <li>このゲームは、個人（pine）が無料で作って動かしています。会社ではありません。広告・課金・投げ銭はありません。</li>
+    <li>このゲームのページは、Google の Firebase Hosting（ページを預かって届けるサービス）に置いています。</li>
+    <li>使う人の登録はありません。あなたは、いつでも使うのをやめられます。</li>
+    <li>このゲームのプログラムは、GitHub（matsupine07/binary-battle）で、MIT ライセンスで公開しています。</li>
+  </ol>
+
+  <h3 id="article-4">第4条（18歳未満の人）</h3>
+  <p>18歳未満の人は、保護者（親など）の同意を得てから使ってください。小学生までの人は、保護者といっしょに遊んでください。</p>
+
+  <h3 id="article-5">第5条（してはいけないこと）</h3>
+  <ol>
+    <li>自動で大量に開くなど、このゲームを止めようとすること</li>
+    <li>note のコメント欄などで、ほかの人を傷つけること</li>
+    <li>法律に反すること</li>
+  </ol>
+
+  <h3 id="article-6">第6条（ゲームの変更・休み・終わり）</h3>
+  <ol>
+    <li>運営者は、このゲームの中身を変えたり、休んだり、終えたりすることがあります。できるだけ前もって、このページかタイトルの画面で知らせます。</li>
+    <li>故障や攻撃、Firebase の無料の枠の上限を超えたときなどに、急に開けなくなることがあります。</li>
+  </ol>
+
+  <h3 id="article-7">第7条（個人情報）</h3>
+  <p>運営者は、あなたの情報を、このページの「<a href="#privacy">プライバシーの説明</a>」のとおりに扱います。</p>
+
+  <h3 id="article-8">第8条（運営者の責任）</h3>
+  <ol>
+    <li>運営者に故意（わざと）または重大な過失（ひどい不注意）があって、あなたに損害が出たときは、運営者はその損害を賠償します。このときは、下の2の決まりは使いません。</li>
+    <li>運営者に軽い過失があって、あなたに損害が出たときだけ、賠償に上限があります。対象は、そのことから直接に、ふつうに起きる損害です。上限は、1つの出来事について、1人あたり1万円です。</li>
+    <li>人の命や体に損害が出たときは、2の決まり（対象をしぼることと、1万円まで）は使いません。</li>
+    <li>通信や端末の不具合、Google など外のサービスが止まったことなどで損害が出ても、運営者に故意も過失もないときは、運営者は責任を負いません。これは、法律でもともとそう決まっていることを、念のため書いたものです。</li>
+  </ol>
+
+  <h3 id="article-9">第9条（規約の変更）</h3>
+  <ol>
+    <li>運営者は、使う人みんなの得になるとき、またはこのゲームの目的に合っていて、変える理由があり、変えた後の中身がやりすぎでないとき（法律が変わったとき、機能を足したりやめたりするときなど）に、この規約を変えることがあります。</li>
+    <li>変えるときは、何を変えるか・変えた後の中身・効き始める日を、効き始める日の7日前までに、このページとタイトルの画面で知らせます。</li>
+    <li>効き始める日より後に、第2条のボタンを押すと、そのときから変えた規約を使います。プライバシーの説明を変えるときも同じです。</li>
+  </ol>
+
+  <h3 id="article-10">第10条（窓口）</h3>
+  <ol>
+    <li>この規約についての質問や、困ったことは、note の記事「<a href="https://note.com/pine_pple/n/nb772ea682a3b" target="_blank" rel="noopener">『動く』と『遊べる』は違った</a>」のコメント欄に書いてください。</li>
+    <li>コメント欄は、だれでも読めます。名前・メールアドレス・電話番号など、あなたがだれか分かることは書かないでください。</li>
+  </ol>
+
+  <h3 id="article-11">第11条（日本の法律と裁判所）</h3>
+  <ol>
+    <li>この規約と、このゲームについての約束には、日本の法律を使います。</li>
+    <li>このゲームについて裁判になったときは、法律で決まっている裁判所で行います。</li>
+  </ol>
+
+  <h3 id="article-12">第12条（この規約が効かない部分があったとき）</h3>
+  <p>この規約の一部が、法律などで効かないとされても、ほかの部分はそのまま効きます。</p>
+
+  <h3>附則</h3>
+  <ul>
+    <li>この規約が効き始める日：【公開する日】</li>
+  </ul>
+
+  <!-- ==================== プライバシーの説明 ==================== -->
+  <h2 id="privacy">プライバシーの説明</h2>
+  <p>このゲームと情報の扱いの説明です。運営者は、この説明のとおりに扱うことを約束しています（第7条）。</p>
+
+  <h3 id="collect">集めるもの</h3>
+  <p>⭐<b>運営者は、あなたの情報を集めません。</b>ゲームの中身（手・勝ち負け・手数）は、あなたの端末の中だけで動きます。CPU も端末の中で考えます。サーバーに送ることも、あなたのブラウザに保存すること（クッキーなど）もありません。ページを閉じると、対局は消えます。</p>
+
+  <h3 id="external">外に送られる情報（送り先の一覧）</h3>
+  <p>このゲームのページは、動くために、あなたの端末から次のところへ情報を送らせます。1と2は、ページを開いただけで送られます。3は、あなたが押したときだけです。</p>
+  <ol>
+    <li><b>Google LLC（Firebase Hosting：ページを届ける仕組み。https://pineapp05.web.app）</b>：IP アドレス、ブラウザと OS の種類、開いたページのアドレス、日時。ページを届けるためと、不正な使い方を見つけるため。IP アドレスは数か月残ります。</li>
+    <li><b>Google LLC（Google Fonts）</b>：IP アドレス、ブラウザと OS の種類、読み込む文字の形の名前。ゲームの文字を表示するためです。Google は、この情報で人ごとの記録を作ったり、狙った広告に使ったりしないと書いています。</li>
+    <li><b>あなたが押したとき</b>：「この結果をコピー」は、結果の文（例：「二進数バトル：CPU対戦、23手で決着しました」）を、あなたの端末のクリップボードに写すだけで、どこにも送りません。「note」のリンクは、note株式会社の note.com を開きます。開いたページと、あなたが書いたコメントは、note の決まりで扱われます。コメントは、だれでも読めます。</li>
+  </ol>
+  <p>前のアドレス（https://matsupine07.github.io/binary-battle/）を開いたときは、ページを置いている GitHub（GitHub, Inc.）にも、同じような情報が届きます。そのページは、すぐこのページへ移ります。</p>
+
+  <h3 id="purpose">アクセス解析と広告</h3>
+  <p>広告や、アクセス解析の部品は入れていません。ただし、ページを届ける Google は、開かれた回数などの集計を、運営者の管理画面に出します。運営者は、この集計を、人を見分けるためには使いません。</p>
+
+  <h3 id="keep">保存する期間</h3>
+  <p>運営者が保存するものはありません。上の「外に送られる情報」の1と2は、Google の決まりで扱われ、保存されます。</p>
+
+  <h3 id="contact">窓口</h3>
+  <ul>
+    <li>運営者：pine（個人で作っています）</li>
+    <li>質問・苦情の窓口：note の記事「<a href="https://note.com/pine_pple/n/nb772ea682a3b" target="_blank" rel="noopener">『動く』と『遊べる』は違った</a>」のコメント欄</li>
+    <li>コメント欄は、だれでも読めます。名前・メールアドレス・電話番号を書かないでください。</li>
+  </ul>
+
+  <!-- ==================== よくある質問 ==================== -->
+  <h2 id="faq">よくある質問</h2>
+  <details>
+    <summary>4 の手が、中指だけ立った形になる</summary>
+    <p>指を二進数で数えると、4 は中指だけ、5 は中指と親指になります。数え方のきまりでそうなるだけで、だれかをばかにする意味はありません。指の上の札に「4」と出ます。</p>
+  </details>
+  <details>
+    <summary>CPU はどのくらい強い？</summary>
+    <p>あなたの手を、ちょうど31にしてたおせるときは、必ずたおします。それができないときは、でたらめに打ちます。</p>
+  </details>
+  <details>
+    <summary>なかなか決着しない</summary>
+    <p>このゲームは、手の数がぐるぐる回って、いつまでも終わらないことがあります。200手たっても決着しなければ、引き分けになります。</p>
+  </details>
+  <details>
+    <summary>「この結果をコピー」を押すと、何か送られる？</summary>
+    <p>送られません。結果の文を、あなたの端末に写すだけです。貼るかどうかは、あなたが決めます。</p>
+  </details>
+
+  <h2 id="history">改定の記録</h2>
+  <ul>
+    <li>【公開する日】：公開しました。この日から効きます。</li>
+  </ul>
+
+  <a class="back back-bottom js-back" href="./">← ゲームにもどる</a>
+</div>
+</main>
+<script>
+  // もどる：ゲームから来たときは、ひとつ前（ゲームの画面）にもどる（対局の途中がそのまま）。
+  // 別のタブで開いたときなど、前のページがゲームでないときは、ゲームのはじめの画面へ（href="./"）
+  for (const a of document.querySelectorAll('.js-back')) {
+    a.addEventListener('click', (e) => {
+      try {
+        if (history.length > 1 && document.referrer && new URL(document.referrer).origin === location.origin) {
+          e.preventDefault();
+          history.back();
+        }
+      } catch {
+        // うまく判断できなければ、ふつうにリンクで移る
+      }
+    });
+  }
+</script>
+</body>
+</html>

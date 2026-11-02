@@ -9,20 +9,12 @@
 // ============================================================
 
 const vm = require("vm");
-const { readScript } = require("./common");
+const { readScript, makeSandbox } = require("./common");
 
-// screen.html の本物の attack を取り出す（二進数モード＝上限31の状態）
+// screen.html の本物の計算（attackVal：足して、31を超えたら31を引く）を取り出す
 function realAttack() {
   let fn = null;
-  const els = {};
-  const el = id => (els[id] = els[id] || {
-    innerHTML: "", textContent: "", disabled: false, className: "",
-  });
-  vm.runInNewContext(readScript() + "\nsave(attack);", {
-    document: { getElementById: el },
-    console: console,
-    save: f => (fn = f),
-  });
+  vm.runInNewContext(readScript() + "\nsave(attackVal);", makeSandbox({ save: f => (fn = f) }));
   return fn;
 }
 
@@ -40,7 +32,7 @@ function verify() {
     }
   }
   console.log("■ シミュレーターの検証");
-  console.log("   screen.html の本物の attack と、全900通りで突き合わせ");
+  console.log("   screen.html の本物の計算（attackVal）と、全900通りで突き合わせ");
   console.log("   不一致: " + mismatch + " 件");
   if (mismatch > 0) {
     console.log("   ★一致しないので中止します");

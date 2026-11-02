@@ -1,645 +1,590 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <!-- ★スマホ対応。これが無いとスマホは「幅980pxの画面」として描くので、全体が極小になる -->
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="勝つには相手の指の組み合わせが見えないといけない、2人対戦の手遊びゲーム。ひとりでも遊べるCPU対戦つき。">
-  <!-- ★2026-10-22: 本番URLを https://pineapp05.web.app/ に移した。
-       旧URL（matsupine07.github.io/binary-battle/）も残してあるので、
-       どちらを見ても検索結果が新URLにまとまるよう canonical を絶対URLで書いている ★ -->
-  <link rel="canonical" href="https://pineapp05.web.app/screen.html">
-  <title>二進数バトル</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      max-width: 600px;
-      margin: 40px auto;
-      padding: 0 20px;
-      background: #f5f5f5;
-      color: #333;
-    }
-    h1 {
-      font-size: 24px;
-      border-bottom: 3px solid #4a9;
-      padding-bottom: 8px;
-    }
-    #board {
-      background: #fff;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 16px;
-    }
-    .row {
-      display: flex;
-      align-items: flex-end;
-      gap: 12px;
-      padding: 8px 0;
-      border-bottom: 1px solid #eee;
-    }
-    /* ② 今の攻撃者の行をうっすら色付け */
-    .row.active {
-      background: #eafaf5;
-    }
-    .label {
-      width: 56px;
-      font-weight: bold;
-    }
-    .hand {
-      display: flex;
-      align-items: flex-end;
-      gap: 4px;
-      height: 44px;
-    }
-    .finger {
-      width: 12px;
-      border-radius: 6px 6px 2px 2px;
-    }
-    .up {
-      height: 40px;
-      background: #4a9;
-    }
-    .down {
-      height: 12px;
-      background: #ccc;
-    }
-    /* ① 死んだ手（上限ちょうどの手）はグレーアウト */
-    .hand.dead .finger {
-      background: #ccc;
-      opacity: 0.4;
-    }
-    .num {
-      color: #666;
-      font-size: 14px;
-    }
-    .dead-mark {
-      color: #c44;
-      font-size: 14px;
-      font-weight: bold;
-    }
-    /* ⑤ 手数の表示。盤面の一番下 */
-    .turns {
-      color: #666;
-      font-size: 14px;
-      padding-top: 10px;
-      text-align: right;
-    }
-    #message {
-      font-weight: bold;
-      color: #4a9;
-      min-height: 24px;
-    }
-    button {
-      background: #4a9;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      padding: 10px 16px;
-      margin: 4px 2px;
-      font-size: 14px;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #3a8;
-    }
-    /* ③ 押せないボタン。button:hover と詳細度が同点なので、必ずこの下に書く */
-    button:disabled {
-      background: #ccc;
-      color: #888;
-      cursor: not-allowed;
-    }
-    .modes {
-      font-size: 14px;
-      color: #666;
-    }
-    /* ⑦ 選択中のモード。:hover 付きも書いてあるのは、
-       .mode-on だけだと button:hover（詳細度が上）に負けて、
-       マウスを乗せた瞬間だけ色が戻ってしまうから */
-    .mode-on, .mode-on:hover {
-      background: #276;
-    }
-    /* 冒頭の説明。何のゲームかを1行で伝える */
-    .lead {
-      line-height: 1.7;
-    }
-    /* ルールは畳んでおく。読みたい人だけ開く（盤面を下に押しやらないため） */
-    .rules {
-      background: #fff;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 10px 14px;
-      margin-bottom: 16px;
-      font-size: 14px;
-      line-height: 1.8;
-    }
-    .rules summary {
-      cursor: pointer;
-      font-weight: bold;
-      color: #276;
-    }
-    .rules ul {
-      padding-left: 1.2em;
-    }
-    .note-small {
-      color: #666;
-      font-size: 13px;
-    }
-    /* 感想の導線。決着したときだけ出す（.show が付いたときだけ見える） */
-    .share {
-      display: none;
-    }
-    .share.show {
-      display: block;
-      background: #fff;
-      border: 2px solid #4a9;
-      border-radius: 8px;
-      padding: 14px;
-      margin: 12px 0;
-    }
-    .share-line {
-      background: #f5f5f5;
-      border-radius: 6px;
-      padding: 8px 10px;
-      font-size: 13px;
-      color: #444;
-      word-break: break-all;
-    }
-    .share p {
-      margin: 8px 0;
-      font-size: 14px;
-    }
-    /* ★スマホ。指1本ぶんの幅より小さいボタンは押しにくいので、縦積みにして大きくする */
-    @media (max-width: 480px) {
-      body {
-        margin: 16px auto;
-        padding: 0 12px;
-      }
-      button {
-        padding: 12px 14px;
-        font-size: 15px;
-      }
-      /* 攻撃の4ボタンは横に並べると折り返して読みにくいので、1行に1つ */
-      #btn-rr, #btn-rl, #btn-lr, #btn-ll {
-        display: block;
-        width: 100%;
-        margin: 6px 0;
-      }
-    }
-  </style>
+<meta charset="utf-8">
+<!-- ★スマホ対応。これが無いとスマホは「幅980pxの画面」として描くので、全体が極小になる -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>二進数バトル — 指を二進数で数える手遊び</title>
+<meta name="description" content="指を二進数で数える、ふたりの手遊びバトル。指は 16・8・4・2・1。ちょうど31でたおれる。ひとりでも遊べるCPU対戦つき。">
+<!-- ★本番は https://pineapp05.web.app/ 。旧URL（GitHub Pages）を見ても検索結果がこちらにまとまるよう、canonical は絶対URL -->
+<link rel="canonical" href="https://pineapp05.web.app/screen.html">
+<meta name="theme-color" content="#10111b">
+<link rel="icon" href="img/favicon-48.png" sizes="48x48" type="image/png">
+<link rel="icon" href="img/icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<!-- リンクを送ったときに出る見出し（OGP）。画像は tools/make-images.js で描く -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="二進数バトル">
+<meta property="og:title" content="二進数バトル — 指を二進数で数える手遊び">
+<meta property="og:description" content="指は 16・8・4・2・1。たたいて足して、ちょうど31で相手の手をたおす。ひとりでも、ふたりでも。">
+<meta property="og:url" content="https://pineapp05.web.app/">
+<meta property="og:image" content="https://pineapp05.web.app/img/ogp.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ドット絵の手と「二進数バトル」の文字">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+<style>
+/* 色は Sweetie 16（ドット絵でよく使われる16色のパレット）。手の色は pineさんの絵のまま */
+:root{
+  --c0:#1a1c2c;--c1:#5d275d;--c2:#b13e53;--c3:#ef7d57;--c4:#ffcd75;--c5:#a7f070;--c6:#38b764;--c7:#257179;
+  --c8:#29366f;--c9:#3b5dc9;--ca:#41a6f6;--cb:#73eff7;--cc:#f4f4f4;--cd:#94b0c2;--ce:#566c86;--cf:#333c57;
+  --page:#10111b;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--page);color:var(--cc)}
+body{font-family:"DotGothic16",ui-monospace,"MS Gothic",monospace;line-height:1.7;font-size:15px}
+button{font:inherit;color:inherit}
+b{font-weight:normal;color:var(--c4)}
+a{color:var(--cb)}
+[hidden]{display:none!important}
+
+.app{max-width:440px;margin:0 auto;padding:18px max(16px,env(safe-area-inset-right,0px)) 28px max(16px,env(safe-area-inset-left,0px))}
+.pbtn{background:var(--c9);border:3px solid var(--c0);box-shadow:inset -3px -3px 0 var(--c8),inset 3px 3px 0 var(--ca);padding:8px 12px;cursor:pointer;font-size:15px;line-height:1.3}
+.pbtn:active{transform:translateY(2px)}
+.pbtn.red{background:var(--c2);box-shadow:inset -3px -3px 0 var(--c1),inset 3px 3px 0 var(--c3)}
+.pbtn.dark{background:var(--cf);box-shadow:inset -3px -3px 0 var(--c0),inset 3px 3px 0 var(--ce)}
+.pbtn.small{padding:3px 9px;font-size:13px}
+.pbtn.big{display:block;width:100%;font-size:19px;padding:12px 14px}
+.pbtn.big small{display:block;font-size:12px;opacity:.85;margin-top:2px}
+.foot{text-align:center;font-size:12px;color:var(--ce);margin-top:20px;line-height:2}
+.foot a{color:var(--cd)}
+
+/* ---------- タイトル ---------- */
+.logo{font-size:40px;line-height:1.15;text-align:center;color:var(--c4);text-shadow:3px 3px 0 var(--c2),6px 6px 0 #000;letter-spacing:.04em;margin:18px 0 0}
+.logo small{display:block;font-size:13px;color:var(--cd);text-shadow:none;letter-spacing:0;margin-top:12px}
+.title-hands{display:flex;justify-content:center;gap:18px;margin:22px 0 6px}
+.title-hands .cap{text-align:center;font-size:12px;color:var(--cd)}
+.title-hands .cap b{font-size:20px;color:var(--cc)}
+.menu{display:grid;gap:10px;margin-top:18px}
+.consent{font-size:12px;color:var(--cd);text-align:center;margin:12px 0 0;line-height:1.6}
+
+/* ---------- 上の帯（遊び方・対戦） ---------- */
+.bar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+.bar .name{font-size:14px;color:var(--cd)}
+
+/* ---------- 遊び方 ---------- */
+.howto h1{font-size:24px;font-weight:normal;color:var(--c4);margin:4px 0 12px;text-shadow:2px 2px 0 var(--c2)}
+.step{background:var(--c0);border:3px solid var(--cf);padding:12px 12px 14px;margin-bottom:12px}
+.step h2{font-size:16px;font-weight:normal;margin:0 0 6px;color:var(--cb)}
+.step h2 .n{display:inline-block;min-width:24px;text-align:center;background:var(--cb);color:var(--c0);margin-right:8px}
+.step p{margin:6px 0 0;font-size:14px;line-height:1.7}
+.fig{display:flex;align-items:flex-end;justify-content:center;gap:6px;margin-top:8px}
+.fig .op{font-size:20px;color:var(--cd);padding-bottom:30px}
+.fig .one{display:flex;flex-direction:column;align-items:center;flex:0 1 87px;min-width:0}
+.fig .one svg{width:100%;height:auto}
+.fig .one .num{font-size:20px}
+.fig .one .sum{font-size:11px}
+.tip{font-size:13px;color:var(--cd);background:#232742;padding:6px 10px;margin-top:8px}
+
+/* ---------- 盤 ---------- */
+.board{position:relative;background:var(--c0);border:4px solid var(--cc);box-shadow:0 0 0 4px var(--c0),6px 6px 0 4px #000;overflow:hidden;user-select:none;-webkit-user-select:none}
+.side{padding:8px 6px 10px;transition:background .15s steps(2)}
+.side.top{background:#1d2442}
+.side.bottom{background:#2a1d36}
+.side.top.active{background:#283466}
+.side.bottom.active{background:#45264a}
+.who{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--cd);padding:0 4px}
+.side.active .who{color:var(--cc)}
+.side.active .who::after{content:"の番";color:var(--c4);animation:blink .8s steps(2) infinite}
+.tag{display:inline-block;min-width:26px;text-align:center;color:var(--c0);line-height:22px}
+.tag.a{background:var(--c3)}
+.tag.b{background:var(--ca)}
+.hands{display:flex;justify-content:space-around;align-items:flex-start;margin-top:6px}
+.slot{position:relative;display:flex;flex-direction:column;align-items:center;gap:0;padding:4px 4px 2px;border:3px solid transparent;cursor:default}
+.slot.mine{cursor:pointer}
+.slot.dead{cursor:default}
+.slot.can{cursor:pointer;border-style:dashed;border-color:var(--cb);animation:blinkB .9s steps(2) infinite}
+
+/* 手：指の上に数字の札。立っている指の札だけ黄色く光る */
+.hand{display:flex;flex-direction:column;align-items:center}
+.labels{position:relative;height:20px;margin-bottom:3px}
+.labels span{position:absolute;top:0;transform:translateX(-50%);min-width:18px;padding:0 2px;font-size:12px;line-height:18px;text-align:center;background:#232742;color:var(--ce);box-shadow:0 0 0 1px #000}
+.labels span.on{background:var(--c4);color:var(--c0)}
+.artwrap{position:relative;line-height:0;transition:transform .1s steps(2)}
+.slot.sel .artwrap{transform:translateY(-8px)}
+.slot.sel svg,.slot.cpu svg{filter:drop-shadow(3px 0 0 var(--g)) drop-shadow(-3px 0 0 var(--g)) drop-shadow(0 3px 0 var(--g)) drop-shadow(0 -3px 0 var(--g))}
+.slot.sel{--g:var(--cb)}
+.slot.cpu{--g:var(--c2)}
+.num{font-size:26px;line-height:1.15;text-shadow:2px 2px 0 #000;margin-top:2px}
+.sum{font-size:12px;line-height:16px;min-height:16px;color:var(--cd)}
+.slot.dead .num,.slot.dead .sum{color:var(--ce)}
+.pv{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);white-space:nowrap;background:var(--c0);border:2px solid var(--cb);padding:0 8px;font-size:15px;line-height:24px;z-index:3;pointer-events:none}
+.pv small{color:var(--cd);font-size:12px;margin-right:6px}
+.pv.just{border-color:var(--c4);color:var(--c4);animation:blink .5s steps(2) infinite}
+.pv.afure{border-color:var(--c3);color:var(--c3)}
+
+.mid{background:var(--c0);border-top:3px solid var(--cf);border-bottom:3px solid var(--cf);padding:10px 12px;text-align:center;min-height:78px;display:flex;flex-direction:column;justify-content:center;gap:2px}
+.msg{font-size:15px}
+.turnno{font-size:12px;color:var(--cd)}
+.tools{display:flex;justify-content:center;gap:8px;margin-top:16px}
+
+/* 決着の画面。盤の上に重ねる */
+.over{position:absolute;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(16,17,27,.9);padding:18px;text-align:center}
+.over .big{font-size:40px;line-height:1.2;color:var(--c4);text-shadow:3px 3px 0 var(--c2),6px 6px 0 #000}
+.over.draw .big,.over.lose .big{color:var(--cd);text-shadow:3px 3px 0 var(--c8),6px 6px 0 #000}
+.over .sub{font-size:15px}
+.share{background:var(--c0);border:3px solid var(--cf);padding:10px;width:100%;font-size:13px;line-height:1.6}
+.share .line{background:#232742;padding:6px 8px;margin:6px 0;word-break:break-all;color:var(--cc)}
+.share .tiny{color:var(--cd);font-size:12px}
+
+.pop{position:fixed;z-index:50;pointer-events:none;font-size:22px;color:#fff;text-shadow:3px 3px 0 var(--c0),-1px -1px 0 var(--c0);animation:popup .9s steps(9) forwards;transform:translate(-50%,-50%);white-space:nowrap}
+.pop.just{color:var(--c4)}
+.pop.afure{color:var(--c3)}
+.shake{animation:shake .3s steps(6)}
+
+@keyframes blink{50%{opacity:.35}}
+@keyframes blinkB{50%{border-color:transparent}}
+@keyframes popup{0%{opacity:1;margin-top:0}100%{opacity:0;margin-top:-44px}}
+@keyframes shake{0%,100%{translate:0 0}20%{translate:-6px 0}40%{translate:6px 0}60%{translate:-4px 0}80%{translate:3px 0}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
 </head>
 <body>
 
-  <h1>二進数バトル</h1>
-
-  <p class="lead">
-    勝つには、<b>相手の指の組み合わせが見えていないといけない</b>対戦ゲームです。<br>
-    ひとりで遊ぶときは、下の「<b>CPU（Bを担当）</b>」を押してください。
-  </p>
-
-  <details class="rules">
-    <summary>ルールを見る</summary>
-    <ul>
-      <li>お互い両手を使います。最初はどちらの手も <b>1</b>。</li>
-      <li>自分の手で相手の手を選ぶと、<b>自分の手の数だけ相手の手が増えます</b>。</li>
-      <li><b>ちょうど31</b> になった手は死んで、使えなくなります。</li>
-      <li>31 を超えたときは <b>31 を引いて</b> 続けます（例：35 → 4）。</li>
-      <li><b>両手とも死んだほうの負け</b>です。</li>
-      <li>200手たっても決着しなければ引き分けになります。</li>
-    </ul>
-    <p class="note-small">
-      指は左から <b>小指16・薬指8・中指4・人差し指2・親指1</b> の重みを持っていて、
-      立っている指を足した数が、その手の数です。<br>
-      「5本指モード」を選ぶと、指1本＝1 で数える元の遊び方になります（ちょうど <b>5</b> で死亡）。
-    </p>
-  </details>
-
-  <p class="modes">
-    モード：
-    <button id="mode-binary" onclick="setMode('binary')">二進数モード</button>
-    <button id="mode-normal" onclick="setMode('normal')">5本指モード</button>
-  </p>
-
-  <p class="modes">
-    対戦相手：
-    <button id="foe-human" onclick="setCPU(false)">人間ふたり</button>
-    <button id="foe-cpu"   onclick="setCPU(true)">CPU（Bを担当）</button>
-  </p>
-
-  <div id="board"></div>
-  <p id="message"></p>
-
-  <!-- 決着したときだけ出る。遊び終わった直後がいちばん反応しやすいので、そこに置いている。
-       手数はボタンを押すだけで文章に入るので、書くことを考えなくていい -->
-  <div id="share" class="share">
-    <p><b>よかったら、結果を教えてください。</b></p>
-    <p class="share-line" id="share-text"></p>
-    <p>
-      <button id="share-btn" onclick="copyResult()">この結果をコピー</button>
-    </p>
-    <p class="note-small">
-      コピーして <a id="share-link" href="#" target="_blank" rel="noopener">note のコメント欄</a> に貼るだけで大丈夫です。<br>
-      感想はあってもなくても構いません。あれば一言そえてください。
-    </p>
+<!-- ===================== タイトル ===================== -->
+<main class="app" id="screen-title">
+  <h1 class="logo">二進数バトル<small>指を 二進数で数える、ふたりの手遊び</small></h1>
+  <div class="title-hands" id="title-hands"></div>
+  <div class="menu">
+    <button class="pbtn big red" data-go="cpu">ひとりで あそぶ<small>CPU と たいせん</small></button>
+    <button class="pbtn big" data-go="human">ふたりで あそぶ<small>1台の画面で 交代しながら</small></button>
+    <button class="pbtn big dark" data-go="howto">あそびかた</button>
   </div>
+  <p class="consent">はじめると、<a href="terms.html">利用規約とプライバシー</a>に同意したことになります。</p>
+  <div class="foot">
+    <a href="terms.html">利用規約とプライバシー</a> ・ <a href="https://note.com/pine_pple/n/nb772ea682a3b" target="_blank" rel="noopener">感想は note へ</a><br>
+    二進数バトル ・ pine
+  </div>
+</main>
 
-  <button id="btn-rr" onclick="doAttack('right','right')">右手 → 相手の右手</button>
-  <button id="btn-rl" onclick="doAttack('right','left')">右手 → 相手の左手</button>
-  <br>
-  <button id="btn-lr" onclick="doAttack('left','right')">左手 → 相手の右手</button>
-  <button id="btn-ll" onclick="doAttack('left','left')">左手 → 相手の左手</button>
-  <br>
-  <!-- リセットは常に押せるので id を付けない（updateButtons の管理下に入れない） -->
-  <button onclick="reset()">リセット</button>
+<!-- ===================== あそびかた ===================== -->
+<main class="app howto" id="screen-howto" hidden>
+  <div class="bar"><button class="pbtn small dark" data-back>← もどる</button><span class="name">二進数バトル</span></div>
+  <h1>あそびかた</h1>
 
-  <script>
-    // ===== 状態（ゲームが覚えておくデータ）=====
-    let person1 = {name:"A", right:1, left:1};
-    let person2 = {name:"B", right:1, left:1};
-    let attacker = person1;   // 今の攻撃者（person1の別名）
-    let defender = person2;   // 今の防御者
-    let gameOver = false;     // ④ 決着したら true にするフラグ
-    let turnCount = 0;        // ⑤ 成立した攻撃の回数（手数）
-    let vsCPU = false;        // ⑧ Bをコンピュータが操作するか
+  <section class="step">
+    <h2><span class="n">1</span>指は 数字</h2>
+    <div class="fig" id="fig-1"></div>
+    <p>指には、左から <b>16・8・4・2・1</b> の数字があります。<br>立っている指の数字を足すと、その手の数になります。</p>
+  </section>
 
-    // ⑥ この手数に達しても決着しなければ引き分け。
-    //    バランス実測で、約3〜5%の対局が無限ループに入る（何手やっても終わらない）と判明したため。
-    //    上位5%の対局が154手なので、200手なら普通の勝負を邪魔しない。
-    //    let ではなく const ＝ゲーム中に変わらない「設定」であることの目印
-    const MAX_TURNS = 200;
+  <section class="step">
+    <h2><span class="n">2</span>たたいて 足す</h2>
+    <div class="fig" id="fig-2"></div>
+    <p>自分の手を押してから、相手の手を押すと、<b>自分の手の数だけ、相手の手がふえます</b>。<br>押す前に、相手の手の上に「→ 13」のように結果が出ます。</p>
+  </section>
 
-    // ===== モード（2つのルールの違いを、ここ1か所にまとめる）=====
-    //
-    // 5本指モード（元ゲーム）＝指を1本ずつ数える。片手の最大は5
-    // 二進数モード          ＝指を桁として使う（親1・人2・中4・薬8・小16）。片手の最大は31
-    // どちらも指は5本で、違うのは「指の数え方」だけ。
-    // だから max と fingers を差し替えるだけで切り替わる
-    const MODES = {
-      binary: {
-        label: "二進数モード",
-        max: 31,
-        showFingerNames: true,      // 「13（薬指中指親指）」と出す
-        fingers: [
-          {name:"小指",     value:16},
-          {name:"薬指",     value:8},
-          {name:"中指",     value:4},
-          {name:"人差し指", value:2},
-          {name:"親指",     value:1}
-        ]
-      },
-      normal: {
-        label: "5本指モード",
-        max: 5,
-        showFingerNames: false,     // 「3（3本）」と出す。どの指かに意味が無いモードなので
-        fingers: [
-          {name:"小指",     value:1},
-          {name:"薬指",     value:1},
-          {name:"中指",     value:1},
-          {name:"人差し指", value:1},
-          {name:"親指",     value:1}
-        ]
-      }
-    };
+  <section class="step">
+    <h2><span class="n">3</span>ぴったり31で たおれる</h2>
+    <div class="fig" id="fig-3"></div>
+    <p><b>ちょうど31</b>（指が全部立つ）になった手は、たおれて使えなくなります。</p>
+  </section>
 
-    let modeName = "binary";   // ⑦ 今どちらで遊んでいるか
+  <section class="step">
+    <h2><span class="n">4</span>31をこえたら</h2>
+    <div class="fig" id="fig-4"></div>
+    <p>31をこえたら、<b>31を引いた数</b>になります（9＋24＝33 → 2）。</p>
+  </section>
 
-    // ⑦ 今のモードの設定を取り出す。
-    //    わざと関数にしている。`let MAX = MODES[modeName].max;` のような「あだ名」にすると、
-    //    モードを切り替えたときに貼り直しを忘れて古い値が残る（attacker のあだ名と同じ落とし穴）。
-    //    毎回ここから取りに行けば、その心配が原理的に無くなる
-    function MODE(){ return MODES[modeName]; }
+  <section class="step">
+    <h2><span class="n">5</span>勝ち と 負け</h2>
+    <p><b>両手とも たおれたほうの負け</b>です。<br>200手たっても決着しなければ、引き分けです。</p>
+    <div class="tip">コツ：相手の手が「あといくつで31か」を見て、ちょうどの数の手で たたこう。</div>
+  </section>
 
-    // ===== ロジック（計算・判定）=====
+  <div class="menu">
+    <button class="pbtn big red" data-go="cpu">ひとりで あそぶ<small>CPU と たいせん</small></button>
+    <button class="pbtn big" data-go="human">ふたりで あそぶ<small>1台の画面で 交代しながら</small></button>
+  </div>
+  <p class="consent">はじめると、<a href="terms.html">利用規約とプライバシー</a>に同意したことになります。</p>
+</main>
 
-    // 攻撃の計算。上限を超えたら上限を引く
-    function attack(a, b){
-      const max = MODE().max;
-      if (a + b > max){ return a + b - max }
-      return a + b
+<!-- ===================== たいせん ===================== -->
+<main class="app" id="screen-game" hidden>
+  <div class="bar">
+    <button class="pbtn small dark" data-back>← タイトル</button>
+    <span class="name" id="mode-name"></span>
+    <button class="pbtn small dark" data-go="howto">？ あそびかた</button>
+  </div>
+  <div class="board" id="board"></div>
+  <div class="tools"><button class="pbtn small" id="reset">はじめから</button></div>
+</main>
+
+<script>
+'use strict';
+// =====================================================================
+// ドット絵を描く道具
+// =====================================================================
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const pick = a => a[Math.floor(Math.random() * a.length)];
+
+// 何も無いマスのうち、上下左右どれかに色があるマスを、ふちの色にする
+const OUTLINE = '#1a1c2c';
+function outline(g) {
+  const H = g.length, W = g[0].length, o = g.map(r => r.slice());
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (g[y][x]) continue;
+    if ((y > 0 && g[y-1][x]) || (y < H-1 && g[y+1][x]) || (x > 0 && g[y][x-1]) || (x < W-1 && g[y][x+1])) o[y][x] = OUTLINE;
+  }
+  return o;
+}
+// 表（1マスずつの色）→ SVG。横に同じ色が続くところは1本の長方形にまとめる
+function gridSVG(g, scale) {
+  const H = g.length, W = g[0].length; let r = '';
+  for (let y = 0; y < H; y++) {
+    let x = 0;
+    while (x < W) {
+      const c = g[y][x];
+      if (!c) { x++; continue; }
+      let x2 = x + 1; while (x2 < W && g[y][x2] === c) x2++;
+      r += `<rect x="${x}" y="${y}" width="${x2 - x}" height="1" fill="${c}"/>`;
+      x = x2;
     }
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" width="${W * scale}" height="${H * scale}" shape-rendering="crispEdges" aria-hidden="true">${r}</svg>`;
+}
 
-    // 手が上限ちょうど（＝指を全部使い切った）なら死亡
-    function isDead(a){ return a === MODE().max }
+// ---------------- 手（pineさんが Piskel で描いた絵） ----------------
+// 1文字＝1マス。'.' は何もないマス。描いたのは「指が全部立った手」1枚だけ
+// 下の目印のあいだは「_資料/手の絵を取りこむ.mjs」が書きかえるので、手で直さない
+// <手の絵ここから>
+const HAND_PAL = {"A":"#c9a574","B":"#ddd0bf","C":"#c09f71","D":"#8b724f"};
+const HAND_ART = [
+  "..............AA................",
+  ".............ABBA...............",
+  ".........AA..ABBA..AA...........",
+  "........ABBA.AAAA.ABBA..........",
+  "........ABBA.AAAA.ABBA..........",
+  "........AAAA.AAAA.AAAA..........",
+  "....AA..AAAA.AAAA.AAAA..........",
+  "...ABBA.AAAA.AAAA.AAAA..........",
+  "...ABBA.AAAA.AAAA.AAAA..........",
+  "...AAAA.AAAA.AAAA.AAAA..........",
+  "...AAAA.AAAA.AAAA.AAAA..........",
+  "...AAAA.AAAA.AAAA.AAAA..AAA.....",
+  "...AAAA.AAAA.AAAA.AAAA.CBBBC....",
+  "...AAAA.AAAADCAAADCAAA.ABBBA....",
+  "...AAAA.AAAADCAAADCAAA.AAAAA....",
+  "...AAAADCAAACCAAACCAAA.AAAAA....",
+  "...AAAADCAAAAAAAAAAAAA.AAAAA....",
+  "...AAAACAAACAAAACAAAAA.AAAAA....",
+  "...AAAAAAAACAAAACAAACA.AAAAAC...",
+  "..AAAAAAAAACAAAACAAACADAAAAAC...",
+  "..AAAAACAAACAAACAAACAADAAAAAC...",
+  "..ACAAACAAACAAACAAACAADCCAAAC...",
+  "..AAAAACAAACAAACAAACAAACAAACC...",
+  "..AAAAACCAAACAACAACAAACCAAAA....",
+  "..AACAAAAAAACAAAAACAACAAAAAC....",
+  "...AAAAAAAAACAAAACCACAAAAAAC....",
+  "...AACAAAAAAAAAAAAAAAAAAAAC.....",
+  "....AAAAAAAAAAAAAAAAAAAAAC......",
+  ".....AAAAAAAAAAAAAACACAAAC......",
+  "......AAACCCAAAAAAAAAAACC.......",
+  "........AAAAAAAAAAAACCCC........",
+  ".........AAAAAAAAAAAAA..........",
+];
+// <手の絵ここまで>
 
-    // 両手とも死んでいたら負け
-    function isLoser(p){ return isDead(p.right) && isDead(p.left) }
+// 指の場所（Piskel の座標。左上が 0,0）。x0〜x1 の列で、base の行より上がその指
+// 折れている指は、base の2行上までを関節として残し、それより上を消す
+// 絵を描き直して指の場所が変わったら、ここを直す
+const FINGERS = [
+  {bit:16, x0:3,  x1:6,  base:15},   // 小指
+  {bit:8,  x0:8,  x1:11, base:13},   // 薬指
+  {bit:4,  x0:13, x1:16, base:13},   // 中指
+  {bit:2,  x0:18, x1:21, base:13},   // 人差し指
+  {bit:1,  x0:23, x1:27, base:19},   // 親指
+];
+const S = 4;   // 盤の手は 1マス＝4px
+// 絵のまわりの空きを切り落とす（黒いふちのぶん、1マスだけ残す）
+const BOX = (() => {
+  let x0 = 99, y0 = 99, x1 = -1, y1 = -1;
+  HAND_ART.forEach((r, y) => [...r].forEach((ch, x) => {
+    if (ch !== '.') { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+  }));
+  return {x:x0 - 1, y:y0 - 1, w:x1 - x0 + 3, h:y1 - y0 + 3};
+})();
+const hex2 = n => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0');
+const rgb = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+const darken = (hex, k) => '#' + rgb(hex).map(n => hex2(n * k)).join('');
+// たおれた手の色：明るさだけ残して、青みの灰色にする
+const toGray = hex => { const [r, g, b] = rgb(hex), l = .3 * r + .59 * g + .11 * b; return '#' + [l * .62 + 30, l * .68 + 38, l * .78 + 52].map(hex2).join(''); };
 
-    // ⑧ 今がCPUの番か。CPUはいつもB（person2）を担当する。
-    //    attacker は person1 か person2 の「あだ名」なので、=== で実体を比べられる
-    function isCPUTurn(){
-      return vsCPU && !gameOver && attacker === person2;
+function handGrid(v, dead) {
+  const {x:X0, y:Y0, w:W, h:H} = BOX, g = [], ghosts = [];
+  for (let y = 0; y < H; y++) {
+    const row = [];
+    for (let x = 0; x < W; x++) { const ch = (HAND_ART[y + Y0] || '')[x + X0]; row.push(ch && ch !== '.' ? HAND_PAL[ch] : null); }
+    g.push(row);
+  }
+  for (const f of FINGERS) {
+    if (v & f.bit) continue;
+    for (let y = 0; y < H; y++) for (let x = f.x0 - X0; x <= f.x1 - X0; x++) {
+      if (!g[y][x]) continue;
+      if (y + Y0 < f.base - 2) { g[y][x] = null; ghosts.push([x, y]); }   // 折れた指：関節より上を消す
+      else if (y + Y0 < f.base) g[y][x] = darken(g[y][x], .78);         // 関節の2段は暗く
     }
-
-    // ④ 数値 → どの指が立っているか（true/false を5個の配列で返す）。
-    //    大きい桁から引ける分だけ引く＝二進数変換。この計算をするのは、このファイルでここ1か所だけ
-    function fingerStates(n){
-      const fingers = MODE().fingers;
-      let rest = n;
-      const states = [];
-      for (let i = 0; i < fingers.length; i++) {
-        if (rest >= fingers[i].value) {
-          states.push(true);
-          rest = rest - fingers[i].value;
-        } else {
-          states.push(false);
-        }
-      }
-      return states;
-    }
-
-    // 数値 → 説明文。二進数モードは指の名前（13→薬指中指親指）、5本指モードは「3本」。
-    // どちらも計算はせず、fingerStates の答えを言葉に変えるだけ
-    function handToFingers(n){
-      if (!MODE().showFingerNames) { return n + "本"; }
-      const states = fingerStates(n);
-      const fingers = MODE().fingers;
-      let result = "";
-      for (let i = 0; i < states.length; i++) {
-        if (states[i]) {
-          result = result + fingers[i].name;
-        }
-      }
-      return result;
-    }
-
-    // ===== 表示（画面を描く）=====
-
-    // 数値 → 指の絵（CSSの棒）。左から 16/8/4/2/1 の順＝二進数の並び
-    function handHTML(n){
-      const states = fingerStates(n);   // ④ 自分では計算せず、答えをもらうだけ
-      let cls = "hand";
-      if (isDead(n)) {          // ① 死んだ手には dead クラスを足す
-        cls = "hand dead";
-      }
-      let html = '<span class="' + cls + '">';
-      for (let i = 0; i < states.length; i++) {
-        if (states[i]) {
-          html = html + '<span class="finger up"></span>';
-        } else {
-          html = html + '<span class="finger down"></span>';
-        }
-      }
-      html = html + '</span>';
-      return html;
-    }
-
-    // 手1つ分の行（ラベル＋指の絵＋数字）
-    function handRow(p, side){
-      const n = p[side];
-      const label = p.name + (side === "right" ? "右手" : "左手");
-      let cls = "row";
-      if (p === attacker && !gameOver) {   // ② 攻撃者の行だけハイライト
-        cls = "row active";
-      }
-      const info = isDead(n)
-        ? '<span class="dead-mark">' + n + '（死亡）</span>'
-        : '<span class="num">' + n + '（' + handToFingers(n) + '）</span>';
-      return '<div class="' + cls + '">'
-        + '<span class="label">' + label + '</span>'
-        + handHTML(n)
-        + info
-        + '</div>';
-    }
-
-    // 盤面を4行ぶん描き直す
-    function showBoard(p1, p2){
-      let html = "";
-      html = html + handRow(p1, "right");
-      html = html + handRow(p1, "left");
-      html = html + handRow(p2, "right");
-      html = html + handRow(p2, "left");
-      html = html + '<p class="turns">手数：' + turnCount + '</p>';   // ⑤ 盤面の一部として一緒に描く
-      document.getElementById("board").innerHTML = html;
-      updateButtons();       // ③ 盤面と一緒にボタンの有効／無効も更新する
-      updateModeButtons();   // ⑦ 選択中のモードの印も一緒に更新する
-    }
-
-    // メッセージ欄を書き換える
-    function showMessage(text){
-      document.getElementById("message").textContent = text;
-    }
-
-    // ===== 感想の導線 =====
-    //
-    // ★決着した瞬間だけ出す。遊び終わった直後がいちばん反応しやすいため。
-    //   手数はボタンを押すだけで文章に入るので、送る人は「何を書くか」を考えなくていい。
-    //   （自動対戦2万回では平均51〜74手。人が遊んだ数字はまだ1件も無いので、それを集めたい）
-
-    // ★感想の貼り先。変えるときはここ1か所だけ直せばよい
-    // ★感想の貼り先。note記事No.59「『動く』と『遊べる』は違った」のコメント欄。
-    //   ここに集めると、返ってきた手数を1か所で数えられる。
-    //   （プロフィール /pine_pple でも届くが記事を探させることになる。
-    //     /portal はリンク集で記事一覧が出ないので使わない）
-    //   ★共有用の ?sub_rt= は付けない。付けても届くが、計測用のパラメータなので落としてある
-    const NOTE_URL = "https://note.com/pine_pple/n/nb772ea682a3b";
-
-    let shareText = "";
-
-    // kind は「決着しました」か「引き分けになりました」
-    function showShare(kind){
-      const foe = vsCPU ? "CPU対戦" : "人間ふたり";
-      shareText = "二進数バトル：" + MODE().label + "／" + foe + "、" + turnCount + "手で" + kind;
-      document.getElementById("share-text").textContent = shareText;
-      document.getElementById("share-link").href = NOTE_URL;
-      document.getElementById("share-btn").textContent = "この結果をコピー";
-      document.getElementById("share").className = "share show";
-    }
-
-    function hideShare(){
-      document.getElementById("share").className = "share";
-    }
-
-    function copyResult(){
-      const done = function(){
-        document.getElementById("share-btn").textContent = "コピーしました";
-      };
-      // 昔ながらのやり方。見えない入力欄を作って選択してコピーし、すぐ消す。
-      // navigator.clipboard が使えない環境（古いブラウザ等）のための道
-      const fallback = function(){
-        const t = document.createElement("textarea");
-        t.value = shareText;
-        document.body.appendChild(t);
-        t.select();
-        document.execCommand("copy");
-        document.body.removeChild(t);
-        done();
-      };
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(shareText).then(done, fallback);
-      } else {
-        fallback();
+  }
+  if (dead) {
+    for (const row of g) row.forEach((c, x) => { if (c) row[x] = toGray(c); });
+    // 包帯で×（手のひらの上だけ）
+    for (let yy = 18; yy <= 27; yy++) {
+      const t = (yy - 18) / 9, a = Math.round(6 + t * 17), b = Math.round(23 - t * 17);
+      for (const [x, c] of [[a, '#f4f4f4'], [a + 1, '#c2d1dc'], [b, '#f4f4f4'], [b + 1, '#c2d1dc']]) {
+        const gx = x - X0, gy = yy - Y0;
+        if (g[gy] && g[gy][gx]) g[gy][gx] = c;
       }
     }
+  }
+  const o = outline(g);
+  // 消した指の場所に、空っぽの指の枠（市松もよう）。5本の列がいつも見えて、札と指がつながる
+  // ふちを描いたあとに置くので、枠には黒いふちがつかない
+  for (const [x, y] of ghosts) if (!o[y][x]) o[y][x] = (x + y) % 2 ? '#4a5380' : '#363e66';
+  return o;
+}
+const CACHE = new Map();
+function artSVG(v, scale = S) {
+  const key = v + '|' + scale;
+  if (!CACHE.has(key)) CACHE.set(key, gridSVG(handGrid(v, v === MAX), scale));
+  return CACHE.get(key);
+}
+// 手＋指の上の数字の札。札は指の真ん中に合わせる
+function handHTML(v, pv = '') {
+  const dead = v === MAX;
+  const labels = FINGERS.map(f => `<span class="${!dead && (v & f.bit) ? 'on' : ''}" style="left:${((f.x0 + f.x1 + 1) / 2 - BOX.x) * S}px">${f.bit}</span>`).join('');
+  return `<div class="hand"><div class="labels" style="width:${BOX.w * S}px">${labels}</div><div class="artwrap">${artSVG(v)}${pv}</div></div>`;
+}
+// 足し算の式。指が1本だけのときは出さない
+function sumText(v) {
+  if (v === MAX) return 'たおれた';
+  const p = FINGERS.filter(f => v & f.bit).map(f => f.bit);
+  return p.length > 1 ? p.join('＋') : '';
+}
 
-    // ③ ボタン1つを、押せる／押せないに切り替える。
-    //    条件は doAttack の門番3つとまったく同じ（|| ＝どれか1つでも当てはまればダメ）
-    function setButton(id, myHand, yourHand){
-      const blocked = gameOver
-        || isCPUTurn()                      // ⑧ CPUの番は人間が横取りできない
-        || isDead(attacker[myHand])
-        || isDead(defender[yourHand]);
-      document.getElementById(id).disabled = blocked;
-    }
+// =====================================================================
+// ルール（ちょうど31でたおれる・超えたら31を引く・200手で引き分け）
+// =====================================================================
+const MAX = 31;
+// この手数に達しても決着しなければ引き分け。
+// バランス実測で、約3〜5%の対局が無限ループに入る（何手やっても終わらない）と判明したため。
+// 上位5%の対局が154手なので、200手なら普通の勝負を邪魔しない
+const MAX_TURNS = 200;
+// ★感想の貼り先。note記事No.59「『動く』と『遊べる』は違った」のコメント欄
+const NOTE_URL = 'https://note.com/pine_pple/n/nb772ea682a3b';
+const attackVal = (a, b) => a + b > MAX ? a + b - MAX : a + b;
+const isDead = v => v === MAX;
+const isLoser = h => isDead(h[0]) && isDead(h[1]);
 
-    // ③ 4つの攻撃ボタンを今の状況に合わせて更新する
-    function updateButtons(){
-      setButton("btn-rr", "right", "right");
-      setButton("btn-rl", "right", "left");
-      setButton("btn-lr", "left",  "right");
-      setButton("btn-ll", "left",  "left");
-    }
+let vsCPU = true, game = 0;
+let h, turn, ply, sel, busy, result, cpuSel, msg;
 
-    // ⑦ 2つ1組のボタンの、選ばれている方に印を付ける
-    function markSelected(idOn, idOff){
-      document.getElementById(idOn).className = "mode-on";
-      document.getElementById(idOff).className = "";
-    }
+function reset() {
+  game++;   // 待っているCPUの手が、はじめからにした後の対局に入りこまないための番号
+  h = [[1, 1], [1, 1]]; turn = 0; ply = 0; sel = -1; busy = false; result = null; cpuSel = null; msg = null;
+  render();
+}
+const nameOf = side => vsCPU ? (side === 0 ? 'あなた' : 'CPU') : (side === 0 ? 'A' : 'B');
 
-    // ⑦⑧ モードと対戦相手、2組ぶんの印を更新する
-    function updateModeButtons(){
-      if (modeName === "binary") { markSelected("mode-binary", "mode-normal"); }
-      else                       { markSelected("mode-normal", "mode-binary"); }
+// CPU：相手の手をちょうど倒せるなら倒す。無ければでたらめ
+// シミュレーションで“慣れた人”に近い打ち方だと確かめた強さ
+function cpuChoose() {
+  const moves = [];
+  for (let m = 0; m < 2; m++) for (let t = 0; t < 2; t++) if (!isDead(h[1][m]) && !isDead(h[0][t])) moves.push({m, t});
+  const kill = moves.filter(x => isDead(attackVal(h[1][x.m], h[0][x.t])));
+  return kill.length ? kill[0] : pick(moves);
+}
 
-      if (vsCPU) { markSelected("foe-cpu", "foe-human"); }
-      else       { markSelected("foe-human", "foe-cpu"); }
-    }
+// =====================================================================
+// 盤
+// =====================================================================
+const board = document.getElementById('board');
 
-    // ===== CPU（⑧ Bを担当するコンピュータ）=====
+function slotHTML(side, k) {
+  const v = h[side][k], dead = isDead(v);
+  const mine = !result && !busy && side === turn && !(vsCPU && turn === 1);
+  let cls = 'slot';
+  if (mine && !dead) cls += ' mine';
+  if (dead) cls += ' dead';
+  if (side === turn && sel === k) cls += ' sel';
+  if (cpuSel && side === 1 && cpuSel.m === k) cls += ' cpu';
+  let pv = '';
+  if (sel >= 0 && side !== turn && !dead) {
+    cls += ' can';
+    const x = h[turn][sel], s = x + v;
+    pv = s === MAX ? `<div class="pv just"><small>+${x}</small>ぴったり31！</div>`
+       : s > MAX   ? `<div class="pv afure"><small>+${x}</small>あふれて ${s - MAX}</div>`
+       :             `<div class="pv"><small>+${x}</small>→ ${s}</div>`;
+  }
+  return `<div class="${cls}" data-side="${side}" data-k="${k}">${handHTML(v, pv)}<div class="num">${dead ? '×' : v}</div><div class="sum">${sumText(v)}</div></div>`;
+}
 
-    // 今この場面で打てる手を全部並べる。
-    // 中身は setButton の判定と同じ「自分の手が生きていて、相手の手も生きている」組み合わせ。
-    // 返すのは ["right","left"] のような2個組の配列を並べたもの
-    function cpuMoves(){
-      const moves = [];
-      for (const my of ["right", "left"]) {
-        for (const your of ["right", "left"]) {
-          if (!isDead(attacker[my]) && !isDead(defender[your])) {
-            moves.push([my, your]);
-          }
-        }
-      }
-      return moves;
-    }
+function msgText() {
+  if (msg) return msg;
+  if (vsCPU && turn === 1) return 'CPUが 考えています…';
+  if (sel >= 0) return '相手の手を えらぶ';
+  return vsCPU ? 'じぶんの手を えらぶ' : `${nameOf(turn)}：じぶんの手を えらぶ`;
+}
 
-    // 打つ手を1つ決める。強さは「殺せるなら殺す、無ければランダム」。
-    // シミュレーションで“慣れた人”に近い打ち方だと確かめた強さ
-    function chooseCPUMove(){
-      const moves = cpuMoves();
-      if (moves.length === 0) { return null; }
+function render() {
+  let over = '';
+  if (result) {
+    const big = result.draw ? '引き分け' : vsCPU ? (result.win === 0 ? 'あなたの勝ち！' : 'CPUの勝ち') : `${nameOf(result.win)}の勝ち！`;
+    const cls = result.draw ? 'draw' : (vsCPU && result.win === 1) ? 'lose' : 'win';
+    over = `<div class="over ${cls}">
+      <div class="big">${big}</div>
+      <div class="sub">${result.draw ? `${MAX_TURNS}手たっても 決着しませんでした` : `${ply}手で 決着`}</div>
+      <div class="share">よかったら、結果を教えてください。
+        <div class="line">${result.text}</div>
+        <button class="pbtn small" id="copy">この結果をコピー</button>
+        <div class="tiny">コピーして <a href="${NOTE_URL}" target="_blank" rel="noopener">note のコメント欄</a> に貼るだけで大丈夫です</div>
+      </div>
+      <button class="pbtn" data-act="reset">もういちど</button>
+    </div>`;
+  }
+  board.innerHTML = `
+    <div class="side top ${!result && turn === 1 ? 'active' : ''}">
+      <div class="who"><span class="tag b">B</span>${vsCPU ? 'CPU' : 'B'}</div>
+      <div class="hands">${slotHTML(1, 0)}${slotHTML(1, 1)}</div>
+    </div>
+    <div class="mid"><div class="turnno">${ply}手目 ／ ${MAX_TURNS}手で引き分け</div><div class="msg">${msgText()}</div></div>
+    <div class="side bottom ${!result && turn === 0 ? 'active' : ''}">
+      <div class="hands">${slotHTML(0, 0)}${slotHTML(0, 1)}</div>
+      <div class="who"><span class="tag a">A</span>${vsCPU ? 'あなた' : 'A'}</div>
+    </div>
+    ${over}`;
+  board.querySelectorAll('.slot').forEach(el => el.addEventListener('click', () => onSlot(+el.dataset.side, +el.dataset.k)));
+  board.querySelectorAll('[data-act="reset"]').forEach(el => el.addEventListener('click', reset));
+  const copy = document.getElementById('copy');
+  if (copy) copy.addEventListener('click', () => copyText(result.text, copy));
+}
 
-      // ① 相手の手をちょうど殺せる手があれば、それを選ぶ
-      for (let i = 0; i < moves.length; i++) {
-        const my = moves[i][0];
-        const your = moves[i][1];
-        if (isDead(attack(attacker[my], defender[your]))) {
-          return moves[i];
-        }
-      }
-      // ② 無ければランダム（step1.js の randomHand と同じ考え方）
-      return moves[Math.floor(Math.random() * moves.length)];
-    }
+function onSlot(side, k) {
+  if (result || busy || (vsCPU && turn === 1)) return;
+  msg = null;
+  if (side === turn) {
+    if (isDead(h[side][k])) { msg = 'たおれた手は 使えません'; return render(); }
+    sel = sel === k ? -1 : k;
+    return render();
+  }
+  if (sel >= 0 && !isDead(h[side][k])) attack(sel, k);
+}
 
-    // CPUが1手打つ。setTimeout から呼ばれる
-    function cpuMove(){
-      // ★予約した処理は、状況が変わっても勝手に走ってくる。
-      //   待っている700ミリ秒の間にリセットされたり人間対戦に戻されたりしている
-      //   かもしれないので、打つ前にもう一度確かめて、違えば何もせず帰る
-      if (!isCPUTurn()) { return; }
-      const move = chooseCPUMove();
-      if (move === null) { return; }
-      doAttack(move[0], move[1]);
-    }
+function popAt(el, text, cls) {
+  if (!el) return;
+  const r = el.getBoundingClientRect(), p = document.createElement('div');
+  p.className = 'pop ' + cls; p.textContent = text;
+  p.style.left = (r.left + r.width / 2) + 'px'; p.style.top = (r.top + r.height * .4) + 'px';
+  document.body.appendChild(p); setTimeout(() => p.remove(), 950);
+}
+const artEl = (side, k) => board.querySelector(`.slot[data-side="${side}"][data-k="${k}"] .artwrap`);
 
-    // ===== 操作（ボタンから呼ばれる）=====
+async function attack(m, t) {
+  const g = game;
+  busy = true; sel = -1;
+  const a = artEl(turn, m), b = artEl(1 - turn, t);
+  if (a && b) {
+    const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+    const dx = (rb.left + rb.width / 2 - ra.left - ra.width / 2) * .6, dy = (rb.top + rb.height / 2 - ra.top - ra.height / 2) * .6;
+    a.animate([{translate:'0 0'}, {translate:`${dx}px ${dy}px`}, {translate:'0 0'}], {duration:300, easing:'ease-in-out'});
+    await sleep(150);
+    if (g !== game) return;
+  }
+  const x = h[turn][m], y = h[1 - turn][t], nv = attackVal(x, y);
+  h[1 - turn][t] = nv; ply++;
+  render();
+  const tb = artEl(1 - turn, t);
+  if (tb) tb.classList.add('shake');
+  popAt(tb, isDead(nv) ? 'ぴったり31！' : x + y > MAX ? `あふれて ${nv}` : `+${x}`, isDead(nv) ? 'just' : x + y > MAX ? 'afure' : '');
+  await sleep(350);
+  if (g !== game) return;
 
-    // 1手ぶんの攻撃
-    function doAttack(myHand, yourHand){
-      if (gameOver) {                                   // 門番1：終了後は受け付けない
-        showMessage("ゲームは終了しています。リセットしてください");
-        return;
-      }
-      if (isDead(attacker[myHand])) {                   // 門番2：死んだ手では攻撃できない
-        showMessage("その手は死んでいるので攻撃できません");
-        return;
-      }
-      if (isDead(defender[yourHand])) {                 // 門番3：死んだ手は狙えない
-        showMessage("相手のその手は死んでいます");
-        return;
-      }
+  const foe = vsCPU ? 'CPU対戦' : 'ふたり対戦';
+  if (isLoser(h[1 - turn])) {
+    result = {win:turn, text:`二進数バトル：${foe}、${ply}手で決着しました`};
+  } else if (ply >= MAX_TURNS) {
+    result = {draw:true, text:`二進数バトル：${foe}、${ply}手で引き分けになりました`};
+  } else {
+    turn = 1 - turn;
+  }
+  busy = false; render();
+  if (!result && vsCPU && turn === 1) cpuTurn();
+}
 
-      // 攻撃を反映
-      defender[yourHand] = attack(attacker[myHand], defender[yourHand]);
-      turnCount = turnCount + 1;   // ⑤ 門番を通り抜けた＝攻撃が成立したので、ここで数える
+async function cpuTurn() {
+  const g = game, still = () => g === game && !result && vsCPU && turn === 1;
+  await sleep(500);
+  if (!still()) return;   // 待っているあいだに はじめからにされたら何もしない
+  const mv = cpuChoose();
+  cpuSel = mv; render();
+  await sleep(450);
+  if (!still()) return;
+  cpuSel = null;
+  await attack(mv.m, mv.t);
+}
 
-      // 勝敗チェック
-      if (isLoser(defender)) {
-        gameOver = true;
-        showBoard(person1, person2);   // gameOver反映後に描く（ハイライトが消える）
-        // ★決着したときは手数も出す。遊んだ人が「何手で終わったか」を報告できるようにするため
-        //   （盤面にも常時出ているが、決着の瞬間に確定値を見せたほうが目に入る）
-        showMessage(defender.name + "の負け！ " + attacker.name + "の勝ち！（" + turnCount + "手）");
-        showShare("決着しました");
-        return;
-      }
+function copyText(text, btn) {
+  const done = () => { btn.textContent = 'コピーしました'; };
+  // 昔ながらのやり方。navigator.clipboard が使えない環境（古いブラウザ等）のための道
+  const fallback = () => {
+    const t = document.createElement('textarea'); t.value = text; document.body.appendChild(t);
+    t.select(); document.execCommand('copy'); document.body.removeChild(t); done();
+  };
+  navigator.clipboard ? navigator.clipboard.writeText(text).then(done, fallback) : fallback();
+}
 
-      // ⑥ 引き分けチェック。勝敗判定の「後」に置く＝決着がついたなら引き分けにしない
-      if (turnCount >= MAX_TURNS) {
-        gameOver = true;
-        showBoard(person1, person2);
-        showMessage("引き分け！ " + MAX_TURNS + "手たっても決着しませんでした");
-        showShare("引き分けになりました");
-        return;
-      }
+// =====================================================================
+// 画面の切りかえ（タイトル・あそびかた・たいせん）
+// アドレスの # で覚えるので、スマホの「戻る」でもタイトルにもどれる
+//   （なし）＝タイトル  #howto＝あそびかた  #cpu・#human＝たいせん
+// =====================================================================
+const screens = {title:document.getElementById('screen-title'), howto:document.getElementById('screen-howto'), game:document.getElementById('screen-game')};
+let shown = '';
+function show() {
+  const hash = location.hash.slice(1);
+  const name = hash === 'howto' ? 'howto' : (hash === 'cpu' || hash === 'human') ? 'game' : 'title';
+  for (const [k, el] of Object.entries(screens)) el.hidden = k !== name;
+  if (name === 'game') {
+    const wantCPU = hash === 'cpu';
+    // ちがう相手を選んだとき・タイトルから来たときは、はじめから。あそびかたを見てもどったときは続きから
+    if (wantCPU !== vsCPU || shown === 'title' || !h) { vsCPU = wantCPU; reset(); }
+    document.getElementById('mode-name').textContent = vsCPU ? 'ひとりで（CPU）' : 'ふたりで';
+  } else if (name === 'title') {
+    game++;   // タイトルにもどったら、考え中のCPUを止める
+  }
+  if (shown !== name) window.scrollTo(0, 0);
+  shown = name;
+}
+function go(where) {
+  try { history.pushState({inApp:true}, '', where ? '#' + where : location.pathname + location.search); }
+  catch { location.hash = where; }   // pushState が使えない開き方のときは、# を直接書きかえる（hashchange で show が走る）
+  show();
+}
+window.addEventListener('hashchange', show);
+document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => go(b.dataset.go)));
+// もどる：このページの中で移ってきたなら1つ前へ（対戦の途中にあそびかたを見たら、対戦の続きへ）。
+// アドレスを直接開いたときなどは、タイトルへ
+document.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click', () => {
+  if (history.state && history.state.inApp) history.back(); else go('');
+}));
+window.addEventListener('popstate', show);
+document.getElementById('reset').addEventListener('click', reset);
 
-      // 手番交代（temp を使ったスワップ）
-      const temp = attacker;
-      attacker = defender;
-      defender = temp;
-      showBoard(person1, person2);     // 交代後に描く（ハイライトが新しい攻撃者へ移る）
+// タイトルの手（6＝人差し指と中指／19＝小指・人差し指・親指）と、あそびかたの絵
+function fig(v, scale = 3) {
+  return `<div class="one"><div class="artwrap">${artSVG(v, scale)}</div><div class="num">${isDead(v) ? '×' : v}</div><div class="sum">${sumText(v)}</div></div>`;
+}
+document.getElementById('title-hands').innerHTML = [6, 19].map(v => `<div>${handHTML(v)}<div class="cap"><b>${v}</b><br>${sumText(v)}</div></div>`).join('');
+document.getElementById('fig-1').innerHTML = `<div class="one">${handHTML(13)}<div class="num">13</div><div class="sum">8＋4＋1</div></div>`;
+document.getElementById('fig-2').innerHTML = `${fig(3)}<span class="op">＋</span>${fig(10)}<span class="op">→</span>${fig(13)}`;
+document.getElementById('fig-3').innerHTML = `${fig(3)}<span class="op">＋</span>${fig(28)}<span class="op">→</span>${fig(31)}`;
+document.getElementById('fig-4').innerHTML = `${fig(9)}<span class="op">＋</span>${fig(24)}<span class="op">→</span>${fig(2)}`;
 
-      // ⑧ 交代した先がCPUなら、少し待ってから自動で打たせる。
-      //    すぐ打つと画面が一瞬で飛んで何が起きたか分からないので、わざと間を置く
-      if (isCPUTurn()) {
-        showMessage(attacker.name + "が考えています…");
-        setTimeout(cpuMove, 700);
-      } else {
-        showMessage("次は" + attacker.name + "の番です");
-      }
-    }
-
-    // ⑦ モードを切り替える。ルールが変わるので、必ず最初から始め直す
-    //    （31の盤面を持ったまま5本指モードに行くと、全部の手が死亡扱いになって破綻する）
-    function setMode(name){
-      modeName = name;
-      reset();
-      showMessage(MODE().label + "に切り替えました。Aの番です");
-    }
-
-    // ⑧ 対戦相手を切り替える。途中で変えると混乱するので、必ず最初から始め直す
-    function setCPU(on){
-      vsCPU = on;
-      reset();
-      showMessage(vsCPU
-        ? "CPU対戦にしました。あなたがA、Bがコンピュータです"
-        : "人間ふたりの対戦にしました。Aの番です");
-    }
-
-    // 最初の状態に戻す（盤面・手番・gameOver の3つ全部）
-    function reset(){
-      person1 = {name:"A", right:1, left:1};
-      person2 = {name:"B", right:1, left:1};
-      attacker = person1;
-      defender = person2;
-      gameOver = false;
-      turnCount = 0;             // ⑤ 戻す状態が4つ目になった
-      showBoard(person1, person2);
-      showMessage("リセットしました。Aの番です");
-      hideShare();               // 前の対局の感想欄が残らないように消す
-    }
-
-    // 起動時に一度描く
-    showBoard(person1, person2);
-    showMessage("Aの番です");
-  </script>
-
+show();
+</script>
 </body>
 </html>

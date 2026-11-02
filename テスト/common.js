@@ -2,7 +2,10 @@
 // テストの共通部分
 //
 // screen.html を「ブラウザなしで」動かすための偽物のDOMを用意する。
-// 5つのテストが同じ準備をしていたので、ここ1か所にまとめた（二重管理の解消）。
+// どのテストも同じ準備をするので、ここ1か所にまとめている。
+//
+// 2026-11-02：シンプル版（タイトル・あそびかた・たいせんの3画面、手を押してたたく）に作り直したので、
+// 偽物のDOMも作り直した。前の版のテストは git のコミット 0f6ca35 にある。
 // ============================================================
 
 const fs = require("fs");
@@ -20,44 +23,62 @@ function readScript() {
 
 // テストコードの前に必ず貼りつける小道具
 const PRELUDE = `
+  var finished = null;   // テストの終わり（async の結果）。テスト側で入れる
   function ok(cond, msg){
     if (!cond) { ngCount = ngCount + 1; }
     console.log("   " + (cond ? "OK " : "★NG") + " " + msg);
   }
   function section(title){ console.log(""); console.log("■ " + title); }
-  function fingersUp(n){ return (handHTML(n).match(/finger up/g) || []).length; }
-  function buttonStates(){
-    return ["btn-rr","btn-rl","btn-lr","btn-ll"]
-      .map(id => el(id).disabled ? "無効" : "有効").join(" ");
+  // 予約されたタイマーを全部動かし、続きの処理（await のあと）も最後まで走らせる。
+  // たたく → 揺れる → 手番が変わる → CPU が考えて打つ、までを待ち時間ゼロで進める
+  async function settle(){
+    for (let i = 0; i < 300; i++) { await null; if (pendingTimers() > 0) runTimers(); }
   }
 `;
 
-// screen.html を動かしたうえで、続けて testCode を実行する。
-//
-// document は本物ではなく、下で作る偽物を渡す。
-// screen.html 側のコードは「本物か偽物か」を区別できないので、そのまま動く。
-// あとから el("board").innerHTML を覗けば、画面に何を書き込んだかが全部読める。
-function runGame(testCode, extra) {
+// 偽物の部品。screen.html が使うものだけ、何もしない形で持たせる
+function makeEl(id) {
+  return {
+    id: id, innerHTML: "", textContent: "", hidden: false, disabled: false, className: "", style: {}, dataset: {},
+    classList: { add() {}, remove() {}, toggle() {} },
+    addEventListener() {}, querySelector() { return null; }, querySelectorAll() { return []; },
+    getBoundingClientRect() { return { left: 0, top: 0, width: 0, height: 0 }; },
+    animate() {}, append() {}, appendChild() {}, remove() {},
+  };
+}
+
+// screen.html を動かすための入れ物（document・window・location・history・setTimeout の偽物）を作る
+function makeSandbox(extra) {
   const els = {};
-  const el = id => (els[id] = els[id] || {
-    innerHTML: "",
-    textContent: "",
-    disabled: false,
-    className: "",
-  });
-
-  // 予約されたタイマー（CPUの「少し待ってから打つ」で使われる）
+  const el = id => (els[id] = els[id] || makeEl(id));
   const timers = [];
-
-  const sandbox = Object.assign({
-    document: { getElementById: el },   // ← 偽物のDOM
+  const location = { hash: "", pathname: "/screen.html", search: "" };
+  const history = {
+    state: null,
+    // アドレスの # だけ覚える（画面の切りかえは # で決まる）
+    pushState(state, title, url) { this.state = state; const i = url.indexOf("#"); location.hash = i >= 0 ? url.slice(i) : ""; },
+    back() { backCount++; },
+  };
+  let backCount = 0;
+  return Object.assign({
+    document: {
+      getElementById: el,
+      querySelectorAll: () => [],
+      createElement: () => makeEl(),
+      body: makeEl("body"),
+      execCommand() {},
+    },
+    window: { addEventListener() {}, scrollTo() {} },
+    navigator: {},
+    location: location,
+    history: history,
+    backCount: () => backCount,
     console: console,
     el: el,
     ngCount: 0,      // ok() が失敗を数える場所
-    result: null,    // テスト側から値を持ち帰りたいときに使う
 
     // setTimeout も Node の vm には無いので用意する。
-    // ただし本物のように「待つ」のではなく、予約を溜めておくだけにする。
+    // 本物のように「待つ」のではなく、予約を溜めておくだけにする。
     // テストでは runTimers() で好きなタイミングに発火できる＝待ち時間ゼロで確かめられる
     setTimeout: function (fn, ms) { timers.push(fn); return timers.length; },
     runTimers: function () {
@@ -68,13 +89,21 @@ function runGame(testCode, extra) {
     pendingTimers: function () { return timers.length; },
     clearTimers: function () { timers.length = 0; },
   }, extra || {});
+}
 
+// screen.html を動かしたうえで、続けて testCode を実行する。
+// document は本物ではなく、上で作る偽物を渡す。screen.html 側は「本物か偽物か」を区別できないので、そのまま動く。
+// あとから el("board").innerHTML を覗けば、画面に何を書き込んだかが全部読める。
+function runGame(testCode, extra) {
+  const sandbox = makeSandbox(extra);
   vm.runInNewContext(PRELUDE + readScript() + "\n" + testCode, sandbox);
   return sandbox;
 }
 
 // 結果をまとめて表示する。NGがあれば終了コード1（run-all.js が失敗を検知できる）
-function finish(sandbox) {
+// テストが async のときは、終わるのを待ってから数える
+async function finish(sandbox) {
+  if (sandbox.finished) await sandbox.finished;
   const ng = sandbox.ngCount || 0;
   console.log("");
   if (ng === 0) {
@@ -86,4 +115,4 @@ function finish(sandbox) {
   return ng;
 }
 
-module.exports = { HTML, readScript, runGame, finish };
+module.exports = { HTML, readScript, makeSandbox, runGame, finish };

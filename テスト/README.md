@@ -1,7 +1,7 @@
 # テスト・シミュレーション
 
 二進数バトル（`../screen.html`）を**ブラウザを開かずに**確かめるための道具一式。
-2026-07-27 に整理。
+2026-07-27 に整理。2026-11-02 に、シンプル版（タイトル・あそびかた・たいせんの3画面、手を押してたたく）に作り直したので、テストも作り直した（前の版のテストは git のコミット 0f6ca35 にある）。
 
 ---
 
@@ -13,13 +13,13 @@
 node テスト/run-all.js
 ```
 
-これで5本のテストが全部走る。最後に「✅ 全テスト合格」と出れば問題なし。
+これで6本のテストが全部走る。最後に「✅ 全テスト合格」と出れば問題なし。
 **コードをいじったら、まずこれを走らせる。**
 
 個別に走らせたいときは、ファイル名を直接指定する。
 
 ```bash
-node テスト/test5-modes.js
+node テスト/test5-screens.js
 ```
 
 シミュレーション（時間がかかる。数十秒〜数分）はこちら。
@@ -36,15 +36,16 @@ node テスト/sim1-balance.js
 
 | ファイル | 何を確かめるか |
 |---|---|
-| `test1-fingers.js` | 指の表示。0〜31の全32パターンを基準ファイルと比較する**回帰テスト** |
-| `test2-buttons.js` | 使えないボタンが `disabled` になるか |
-| `test3-turns.js` | 手数カウント。特に**弾かれた攻撃は数えない**こと |
+| `test1-fingers.js` | 指の絵。1〜30の全部で、**絵の中で立っている指・光る札・足し算の式が二進数とそろう**か。31 はたおれた手（灰色＋包帯）になるか。⭐**手の絵を描き直したら必ず走らせる**（指の場所 FINGERS のずれがここで見つかる） |
+| `test2-touch.js` | 手を押す。選ぶ・やめる・**押す前に結果が出る**（→ 13／ぴったり31！／あふれて 2）・たおれた手は選べない |
+| `test3-turns.js` | 計算と手数。特に**選んだだけ・押せない手を押しただけでは数えない**こと |
 | `test4-draw.js` | 引き分け（200手）。**200手目がちょうど決着なら勝敗が優先**されること |
-| `test5-modes.js` | 二進数モード ⇔ 5本指モードの切り替え |
-| `test6-cpu.js` | CPU対戦。**CPUの番は人間が押せない**／**待っている間にリセットされたらCPUは打たない** |
+| `test5-screens.js` | 画面の切りかえ（タイトル・あそびかた・たいせん）。**対戦の途中で あそびかた を見てもどると続きから** |
+| `test6-cpu.js` | CPU対戦。**CPUの番は人間が押せない**／**待っている間に「はじめから」やタイトルにもどったらCPUは打たない** |
 | `run-all.js` | 上の6本をまとめて実行 |
 | `common.js` | 共通部分（偽物のDOMの準備） |
-| `baseline-fingers.txt` | `test1` が使う基準。**表示を意図的に変えたときは削除して作り直す** |
+
+前の版の `baseline-fingers.txt`（指の表示の基準）は、使わなくなったので `../_過去/baseline-fingers_旧版.txt` に移した。
 
 ### シミュレーション（ルールを変えたらどうなるか）
 
@@ -67,16 +68,10 @@ node テスト/sim1-balance.js
 そこで、**同じ形の偽物を自分で作って渡す**（`common.js`）。
 
 ```javascript
-const els = {};
-const el = id => (els[id] = els[id] || {
-  innerHTML: "", textContent: "", disabled: false, className: ""
-});
-
-vm.runInNewContext(readScript() + testCode, {
-  document: { getElementById: el },   // ← 偽物
-  console: console,
-  el: el,
-});
+vm.runInNewContext(PRELUDE + readScript() + testCode, makeSandbox());
+// makeSandbox() の中身：document・window・location・history・setTimeout の偽物
+//   document.getElementById(id) → innerHTML などを持つ、ただのオブジェクト
+//   history.pushState(…, "#cpu") → location.hash を "#cpu" にするだけ
 ```
 
 `el("board")` が返すのは**ただのオブジェクト**で、本物のHTML要素ではない。
@@ -97,9 +92,9 @@ vm.runInNewContext(readScript() + testCode, {
 テストの中では、ゲームの変数や関数をそのまま触れる。
 
 ```javascript
-person2.right = 31;         // 「片手だけ死んだ状態」を1行で作れる
-turnCount = MAX_TURNS - 2;  // 「あと2手で引き分け」まで一瞬で進める
-setMode("normal");          // モードを切り替える
+h = [[31, 5], [1, 1]];      // 「自分の左手だけたおれた状態」を1行で作れる
+ply = MAX_TURNS - 1;        // 「あと1手で引き分け」まで一瞬で進める
+go("cpu");                  // 「ひとりで あそぶ」を押したのと同じ
 ```
 
 ブラウザで同じ状態を作るには何手も打つ必要がある。**これがテストの一番おいしいところ。**
@@ -110,13 +105,12 @@ setMode("normal");          // モードを切り替える
 |---|---|
 | `ok(条件, 説明)` | 条件が true なら OK、false なら ★NG と表示して失敗を数える |
 | `section(見出し)` | 見出しを出す |
-| `fingersUp(n)` | n のとき指が何本立つかを数える |
-| `buttonStates()` | 4つのボタンの状態を `"有効 無効 有効 有効"` の形で返す |
+| `settle()` | たたく → 揺れる → 手番が変わる → CPUが打つ、までを最後まで進める（`await settle()` と書く） |
 | `el(id)` | 画面に何が書き込まれたかを覗く |
 | `runTimers()` | 予約された `setTimeout` を今すぐ全部発火する（CPUの手を待たずに進める） |
 | `pendingTimers()` | 予約が何件たまっているか |
 
-**`setTimeout` も偽物にしてある。**本物は「700ミリ秒待つ」が、テストの偽物は
+**`setTimeout` も偽物にしてある。**本物は「少し待つ」が、テストの偽物は
 **予約を溜めるだけ**で待たない。`runTimers()` を呼んだ瞬間に走る。
 おかげで「CPUが打つ前の状態」と「打った後の状態」を、待ち時間ゼロで別々に確かめられる。
 
