@@ -1,0 +1,42 @@
+{
+  "hosting": {
+    "site": "pineapp05",
+    "public": ".",
+    "redirects": [
+      {
+        "source": "/",
+        "destination": "/screen.html",
+        "type": 301
+      }
+    ],
+    "headers": [
+      {
+        "source": "**/*.@(html|js|css)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
+      }
+    ],
+    "ignore": [
+      ".git/**",
+      ".firebase/**",
+      "**/.*",
+      "**/.*/**",
+      "firebase.json",
+      ".firebaserc",
+      "**/node_modules/**",
+      "index.html",
+      "*.md",
+      "**/*.md",
+      "LICENSE",
+      "0_ファイル案内.html",
+      "_過去/**",
+      "_bk/**",
+      "_資料/**",
+      "テスト/**"
+    ]
+  }
+}
