@@ -5,6 +5,16 @@
     "redirects": [
       {
         "source": "/",
+        "destination": "https://05.pineapp.jp/",
+        "type": 301
+      },
+      {
+        "source": "/:path*",
+        "destination": "https://05.pineapp.jp/:path",
+        "type": 301
+      },
+      {
+        "source": "/",
         "destination": "/screen.html",
         "type": 301
       }
@@ -37,7 +47,8 @@
       "_bk/**",
       "_資料/**",
       "tools/**",
-      "テスト/**"
+      "テスト/**",
+      "_cloudflare/**"
     ]
   }
 }

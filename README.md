@@ -3,7 +3,7 @@
 勝つには、**相手の指の組み合わせが見えていないといけない**対戦ゲームです。
 子供のころにやった指遊びを、指1本ずつではなく**桁として数える**形に作り替えました。
 
-**▶ 遊ぶ： https://pineapp05.web.app/**（前のアドレス https://matsupine07.github.io/binary-battle/ からも、こちらへ移ります）
+**▶ 遊ぶ： https://05.pineapp.jp/**（前のアドレス https://pineapp05.web.app/ と https://matsupine07.github.io/binary-battle/ からも、こちらへ移ります）
 
 ブラウザだけで動きます。インストールも登録も要りません。ひとりで遊ぶときは、タイトルの「ひとりで あそぶ」を押してください。遊び方は、タイトルの「あそびかた」に絵つきで載っています。
 
@@ -52,7 +52,7 @@
 ## 中身について
 
 **ゲームは HTML 1ファイル（`screen.html`）だけで動きます。**
-ライブラリもフレームワークも使っていません。外へ読みに行くのは、文字の形（Google Fonts の DotGothic16）だけです。遊んだ中身はどこにも送りません。
+ライブラリもフレームワークも使っていません。外へ読みに行くのは、文字の形（Google Fonts の DotGothic16）と、ページを置いている Cloudflare が自動で足すアクセス解析（Cloudflare Web Analytics）の小さなプログラムだけです。遊んだ中身はどこにも送りません。
 
 | ファイル | 中身 |
 |---|---|
@@ -60,7 +60,7 @@
 | `terms.html` | 利用規約とプライバシー |
 | `img/` | アイコンと、リンクを送ったときに出る見出し画像。`node tools/serve.mjs` → http://localhost:5605/tools/make-images.html で描き直せます |
 | `tools/serve.mjs` | このフォルダを http://localhost:5605/ で見るための小さなサーバー（公開前の確かめ用） |
-| `index.html` | 前のアドレス（GitHub Pages）から、新しいアドレスへ送るだけのページ |
+| `index.html` | 前のアドレス（GitHub Pages）から、新しいアドレス（https://05.pineapp.jp/）へ送るだけのページ |
 | `_過去/step1.js` | 画面を付ける前の、動きだけを確かめていたころのもの |
 | `テスト/` | テストとシミュレーション |
 
@@ -106,3 +106,12 @@ node テスト/sim1-balance.js
 ## ライセンス
 
 MIT License
+
+---
+
+## 変更の記録
+
+- 2026-11-25：遊ぶアドレスを **https://05.pineapp.jp/** に変えました（ページの置き場所を Firebase Hosting から Cloudflare Pages へ）。前のアドレス（pineapp05.web.app・matsupine07.github.io/binary-battle/）からは転送します。
+- 同じ日に、利用規約とプライバシーの説明（`terms.html`）を新しい置き場所に合わせて直し、12月1日からとしていたお知らせを本文に入れました。アクセス解析（Cloudflare Web Analytics）を使うようになったことも書きました。タイトルのお知らせの1行は消しました。
+- ⭐**2026-11-25 Cloudflare に配って引っ越した**：本物の住所は **https://05.pineapp.jp/**（入れ物 `pineapp05`）。古い Firebase の住所は `firebase.json` の redirects の先頭2本で 301 転送（⛔消すと古い中身が出る。⛔Firebase に配っても誰にも見えない）。直して配るときは、claude 直下で `node _Cloudflare用にまとめる.mjs <このフォルダ>` → `npx wrangler pages deploy "<このフォルダ>/_cloudflare/pineapp05" --project-name pineapp05 --branch main --commit-dirty=true`。データベースの決まりは今までどおり `firebase deploy --only database`。匿名ログインは承認済みドメインに足さなくても通る（07 で確かめた）
+- 2026-11-25 GitHub にも送った（pineさん「やった方が良いことも行って」）：GitHub Pages（matsupine07.github.io/binary-battle/）の入口は 05.pineapp.jp へ案内し、screen.html・terms.html も今の版になった（canonical は 05.pineapp.jp なので、検索はそちらにまとまる）。⛔`_資料/`・`作り直し計画.md`・`0_ファイル案内.html` は git に入れていない（公開リポジトリのため。`git add -A` を使わない）

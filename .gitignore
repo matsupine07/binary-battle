@@ -4,3 +4,7 @@
 
 # 書き換える前の控え（公開リポジトリに上げない）
 _bk/
+
+# Cloudflare に配るための写し（_Cloudflare用にまとめる.mjs が作る）と、手元で試したときの記録（2026-11-20）
+_cloudflare/
+.wrangler/
